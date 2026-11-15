@@ -8,7 +8,7 @@ llm:
     timeout: 180
   max_tokens: 220
   temperature: 0.3
-  history_turns: 12           # fallback provider only
+  history_turns: 12           # keep the last 12 user/assistant turns in HUD chat
 
 hermes:
   base_url: http://127.0.0.1:8642   # Hermes Agent API server (loopback)

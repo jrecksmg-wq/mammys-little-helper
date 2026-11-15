@@ -92,8 +92,8 @@
 
       let phase = 0;
       const render = (t) => {
-        const st = window.JarvisCore ? window.JarvisCore.state : "standby";
-        const level = window.JarvisCore ? window.JarvisCore.level : 0;
+        const st = window.MagnusCore ? window.MagnusCore.state : "standby";
+        const level = window.MagnusCore ? window.MagnusCore.level : 0;
         phase += 0.03 + (st === "thinking" ? 0.05 : 0);
 
         const W = cv.width, H = cv.height, cx = W / 2, cy = H / 2;
@@ -148,7 +148,7 @@
     },
 
     initEvents() {
-      const core = window.JarvisCore;
+      const core = window.MagnusCore;
       if (!core) return;
 
       const micBtn = document.getElementById("zn-mic-btn");
@@ -211,7 +211,7 @@
       core.on("transcript", msg => {
         document.getElementById("zn-subtitle").textContent = msg.text;
         const div = document.createElement("div");
-        div.className = "zn-msg " + (msg.isUser ? "you" : "jarvis");
+        div.className = "zn-msg " + (msg.isUser ? "you" : "magnus");
         div.textContent = msg.text;
         sheetList.appendChild(div);
         sheetList.scrollTop = sheetList.scrollHeight;

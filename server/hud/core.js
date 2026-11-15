@@ -6,7 +6,7 @@
 (function(window) {
   "use strict";
 
-  const CONV = "jarvis-main";
+  const CONV = "magnus-main";
   const listeners = {};
 
   const JarvisCore = {
@@ -59,7 +59,7 @@
       }
 
       let defaultHint = (this.handsFree) 
-        ? t("hint_standby_hf", 'SAY "HEY JARVIS" OR CLICK MIC') 
+        ? t("hint_standby_hf", 'SAY "HEY MAGNUS" OR CLICK MIC') 
         : t("hint_standby_ptt", 'CLICK MIC OR SPACE TO TALK');
 
       let resolvedHint = hint !== undefined ? hint : defaultHint;
@@ -357,8 +357,6 @@
             const phrase = (res[j].transcript || "").toLowerCase().trim();
             const isWake = (
               phrase.includes("magnus") ||
-              phrase.includes("magnus") ||
-              phrase.includes("hey magnus") ||
               phrase.includes("hey magnus") ||
               phrase.includes("hi magnus")
             );

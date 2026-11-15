@@ -14,7 +14,7 @@
         <div id="ironcore-root">
           <!-- Top Bar -->
           <header class="ic-topbar">
-            <div class="ic-brand">J.A.R.V.I.S PLUS // MARK VII CORE</div>
+            <div class="ic-brand">MAGNUS PLUS // MARK VII CORE</div>
             <div class="ic-topbar-right">
               <div class="ic-clock" id="ic-clock">--:--:--</div>
               <div id="template-switcher-slot"></div>
@@ -115,8 +115,8 @@
 
       let rot = 0;
       const render = (t) => {
-        const st = window.JarvisCore ? window.JarvisCore.state : "standby";
-        const level = window.JarvisCore ? window.JarvisCore.level : 0;
+        const st = window.MagnusCore ? window.MagnusCore.state : "standby";
+        const level = window.MagnusCore ? window.MagnusCore.level : 0;
         const color = st === "listening" ? "#19f0d8" : (st === "thinking" ? "#ffb300" : (st === "speaking" ? "#00e5ff" : "#00e5ff"));
         rot += (st === "thinking" ? 2.5 : 0.8);
 
@@ -166,7 +166,7 @@
     },
 
     initEvents() {
-      const core = window.JarvisCore;
+      const core = window.MagnusCore;
       if (!core) return;
 
       const talkBtn = document.getElementById("ic-talk-btn");
@@ -218,7 +218,7 @@
 
       core.on("transcript", msg => {
         const div = document.createElement("div");
-        div.className = "ic-msg " + (msg.isUser ? "you" : "jarvis");
+        div.className = "ic-msg " + (msg.isUser ? "you" : "magnus");
         div.textContent = msg.text;
         feed.appendChild(div);
         feed.scrollTop = feed.scrollHeight;

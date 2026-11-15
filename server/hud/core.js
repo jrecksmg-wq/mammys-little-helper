@@ -706,7 +706,11 @@ registerProcessor("pcm16k",PCM16K);`;
       (j.tools || []).forEach(t => this.emit("activity", { text: "", tool: t.name, preview: t.preview }));
       this.emit("transcript", { text: j.text || "(no reply)", isUser: false });
     } catch (err) {
-      this.emit("log", { type: "sys", text: "chat error: " + err.message });
+      const message = /Failed to fetch|NetworkError|fetch/i.test(err.message)
+        ? "The assistant server is not connected yet. The website is open, but its backend is not running."
+        : "I couldn't reach the assistant service: " + err.message;
+      this.emit("log", { type: "sys", text: message });
+      this.emit("transcript", { text: message, isUser: false });
     }
     if (this.state !== "listening") this.setState("standby", "STANDBY");
   };

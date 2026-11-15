@@ -680,7 +680,57 @@ class VoicePipelineServer:
                 return
         timing.llm_provider = provider
         timing.llm_model = llm["model"]
-        if provider == "anthropic":
+        if provider == "ollama":
+            ollama_cfg = llm.get("ollama") or {}
+            base_url = str(ollama_cfg.get("base_url", "http://127.0.0.1:11434")).rstrip("/")
+            model = str(llm.get("model", "qwen3:4b"))
+            payload = {
+                "model": model,
+                "stream": True,
+                "messages": [
+                    {"role": "system", "content": self.cfg["persona"]["system_prompt"]},
+                    {"role": "user", "content": transcript},
+                ],
+                "options": {
+                    "temperature": float(llm.get("temperature", 0.3)),
+                    "num_predict": int(llm.get("max_tokens", 220)),
+                },
+            }
+            try:
+                response = requests.post(
+                    f"{base_url}/api/chat",
+                    json=payload,
+                    stream=True,
+                    timeout=(10, float(ollama_cfg.get("timeout", 180))),
+                )
+                if response.status_code >= 400:
+                    detail = response.text[:500]
+                    response.close()
+                    raise RuntimeError(f"Ollama HTTP {response.status_code}: {detail}")
+                try:
+                    for raw in response.iter_lines(decode_unicode=True):
+                        if not raw:
+                            continue
+                        try:
+                            chunk = json.loads(raw)
+                        except json.JSONDecodeError:
+                            continue
+                        piece = (chunk.get("message") or {}).get("content") or ""
+                        if piece:
+                            if timing.llm_first_token_monotonic is None:
+                                timing.llm_first_token_monotonic = time.perf_counter()
+                            yield ("text", piece)
+                        if chunk.get("error"):
+                            raise RuntimeError(f"Ollama error: {chunk['error']}")
+                finally:
+                    response.close()
+            except requests.RequestException as exc:
+                raise RuntimeError(
+                    f"Cannot reach local Ollama at {base_url}. Check that Ollama is running: {exc}"
+                ) from exc
+            timing.llm_provider = "ollama"
+            timing.llm_model = model
+        elif provider == "anthropic":
             key = os.environ.get(llm.get("api_key_env", "ANTHROPIC_API_KEY"))
             if not key:
                 raise RuntimeError("ANTHROPIC_API_KEY not found")

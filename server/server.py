@@ -678,6 +678,7 @@ class VoicePipelineServer:
 
     def stream_llm_events_sync(
         self, transcript: str, timing: TurnTiming, conversation: str,
+        messages_override: list[dict] | None = None,
     ) -> Iterator[tuple[str, str]]:
         llm = self.cfg["llm"]
         provider = llm["provider"]
@@ -721,7 +722,7 @@ class VoicePipelineServer:
                 "stream": True,
                 # Qwen3 supports disabling its separate reasoning channel.
                 "think": False,
-                "messages": [
+                "messages": messages_override or [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": transcript},
                 ],
@@ -1535,64 +1536,19 @@ async def hud_chat(request: Request) -> JSONResponse:
                 ]
                 messages.extend(prior[-history_limit:] if history_limit else [])
                 messages.append({"role": "user", "content": text})
-                # Temporarily provide the complete message history to the Ollama
-                # provider; restore it even if the request fails.
-                original_stream = pipeline.stream_llm_events_sync
-                def stream_with_history(transcript, turn_timing, conv):
-                    llm = pipeline.cfg["llm"]
-                    ollama_cfg = llm.get("ollama") or {}
-                    base_url = str(ollama_cfg.get("base_url", "http://127.0.0.1:11434")).rstrip("/")
-                    payload = {
-                        "model": str(llm.get("model", "qwen3:4b")),
-                        "stream": True,
-                        "think": False,
-                        "messages": messages,
-                        "options": {
-                            "temperature": float(llm.get("temperature", 0.3)),
-                            "num_predict": int(llm.get("max_tokens", 220)),
-                        },
-                    }
-                    response = requests.post(
-                        f"{base_url}/api/chat", json=payload, stream=True,
-                        timeout=(10, float(ollama_cfg.get("timeout", 180))),
-                    )
-                    if response.status_code >= 400:
-                        detail = response.text[:500]
-                        response.close()
-                        raise RuntimeError(f"Ollama HTTP {response.status_code}: {detail}")
-                    try:
-                        for raw in response.iter_lines(decode_unicode=True):
-                            if not raw:
-                                continue
-                            try:
-                                chunk = json.loads(raw)
-                            except json.JSONDecodeError:
-                                continue
-                            piece = (chunk.get("message") or {}).get("content") or ""
-                            if piece:
-                                if turn_timing.llm_first_token_monotonic is None:
-                                    turn_timing.llm_first_token_monotonic = time.perf_counter()
-                                yield ("text", piece)
-                            if chunk.get("error"):
-                                raise RuntimeError(f"Ollama error: {chunk['error']}")
-                    finally:
-                        response.close()
-                    turn_timing.llm_provider = "ollama"
-                    turn_timing.llm_model = str(llm.get("model", "qwen3:4b"))
-                try:
-                    for kind, value in stream_with_history(text, timing, conversation):
-                        if kind == "text":
-                            parts.append(value)
-                        elif kind == "tool":
-                            out["tools"].append(json.loads(value))
-                        elif kind == "run":
-                            out["run_id"] = value
-                        elif kind == "final":
-                            info = json.loads(value)
-                            if info.get("content"):
-                                parts = [info["content"]]
-                finally:
-                    pipeline.stream_llm_events_sync = original_stream
+                for kind, value in pipeline.stream_llm_events_sync(
+                    text, timing, conversation, messages_override=messages
+                ):
+                    if kind == "text":
+                        parts.append(value)
+                    elif kind == "tool":
+                        out["tools"].append(json.loads(value))
+                    elif kind == "run":
+                        out["run_id"] = value
+                    elif kind == "final":
+                        info = json.loads(value)
+                        if info.get("content"):
+                            parts = [info["content"]]
             else:
                 for kind, value in pipeline.stream_llm_events_sync(text, timing, conversation):
                     if kind == "text":

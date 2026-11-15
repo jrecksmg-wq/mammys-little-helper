@@ -17,7 +17,7 @@
           <header class="ae-topbar">
             <div class="ae-brand">
               <span class="ae-logo-dot"></span>
-              <span class="ae-brand-title">AETHERIA</span><span class="ae-brand-sub"> // JARVIS PLUS</span>
+              <span class="ae-brand-title">AETHERIA</span><span class="ae-brand-sub"> // MAGNUS</span>
             </div>
             <div class="ae-status-pill">
               <span class="ae-pulse-dot"></span>
@@ -44,7 +44,7 @@
             <!-- Dynamic State Badge -->
             <div class="ae-core-badge">
               <div class="ae-st-label" id="ae-state-label" data-i18n="standby">STANDBY</div>
-              <div class="ae-st-hint" id="ae-state-hint" data-i18n="hint_standby_hf">SAY "HEY JARVIS" OR CLICK MIC</div>
+              <div class="ae-st-hint" id="ae-state-hint" data-i18n="hint_standby_hf">SAY "HEY MAGNUS" OR CLICK MIC</div>
             </div>
 
             <!-- Floating Subtitle Card -->
@@ -76,7 +76,7 @@
                   </div>
                 </div>
                 <div class="ae-chat-input-bar">
-                  <input class="ae-chat-input-modal" id="ae-chat-input-modal" data-i18n-ph="input_placeholder" placeholder="Ask or speak to Jarvis... (Space to talk)" autocomplete="off">
+                  <input class="ae-chat-input-modal" id="ae-chat-input-modal" data-i18n-ph="input_placeholder" placeholder="Ask or speak to Magnus... (Space to talk)" autocomplete="off">
                   <button class="ae-chat-send-modal" id="ae-chat-send-modal" data-i18n="send">SEND</button>
                 </div>
               </div>
@@ -109,7 +109,7 @@
 
             <!-- Sleek Integrated Chat Query Row -->
             <div class="ae-chat-row" id="ae-chat-row">
-              <input class="ae-chat-input" id="ae-chat-input" data-i18n-ph="input_placeholder" placeholder="Ask or speak to Jarvis... (Space to talk)" autocomplete="off">
+              <input class="ae-chat-input" id="ae-chat-input" data-i18n-ph="input_placeholder" placeholder="Ask or speak to Magnus... (Space to talk)" autocomplete="off">
               <button class="ae-chat-send" id="ae-chat-send" data-i18n="send">SEND</button>
             </div>
           </footer>
@@ -183,8 +183,8 @@
       };
 
       const render = (t) => {
-        const st = window.JarvisCore ? window.JarvisCore.state : "standby";
-        const level = window.JarvisCore ? window.JarvisCore.level : 0;
+        const st = window.MagnusCore ? window.MagnusCore.state : "standby";
+        const level = window.MagnusCore ? window.MagnusCore.level : 0;
         const s = STATE_STYLE[st] || STATE_STYLE.standby;
         rot += s.speed;
 
@@ -263,7 +263,7 @@
 
     /* ---------------- Events & Core Wiring ---------------- */
     initEvents() {
-      const core = window.JarvisCore;
+      const core = window.MagnusCore;
       if (!core) return;
 
       const micBtn = document.getElementById("ae-mic-btn");
@@ -390,9 +390,9 @@
       core.on("i18n_change", () => {
         const t = (k, fb) => (window.I18n ? window.I18n.t(k) : fb);
         voxBtn.querySelector("span").textContent = core.handsFree ? t("hands_free_on", "⚡ HANDS-FREE: ON") : t("hands_free_off", "⚡ HANDS-FREE: OFF");
-        chatInp.placeholder = t("input_placeholder", "Ask or speak to Jarvis... (Space to talk)");
+        chatInp.placeholder = t("input_placeholder", "Ask or speak to Magnus... (Space to talk)");
         chatSend.textContent = t("send", "SEND");
-        if (modalInp) modalInp.placeholder = t("input_placeholder", "Ask or speak to Jarvis... (Space to talk)");
+        if (modalInp) modalInp.placeholder = t("input_placeholder", "Ask or speak to Magnus... (Space to talk)");
         if (modalSend) modalSend.textContent = t("send", "SEND");
         const inspLabel = drawerBtn.querySelector(".ae-btn-label");
         if (inspLabel) inspLabel.textContent = t("inspector", "INSPECTOR");
@@ -437,7 +437,7 @@
 
         // Append to chat list
         const div = document.createElement("div");
-        div.className = "ae-msg " + (msg.isUser ? "you" : "jarvis");
+        div.className = "ae-msg " + (msg.isUser ? "you" : "magnus");
         div.textContent = msg.text;
         feedList.appendChild(div);
         feedList.scrollTop = feedList.scrollHeight;
@@ -456,7 +456,7 @@
     renderDrawerContent() {
       const body = document.getElementById("ae-drawer-body");
       if (!body) return;
-      const core = window.JarvisCore;
+      const core = window.MagnusCore;
       const t = (k, fb) => (window.I18n ? window.I18n.t(k) : fb);
 
       let sttName = (core && core.lastTiming && core.lastTiming.stt_model) || "Groq Whisper Large V3 (fa)";

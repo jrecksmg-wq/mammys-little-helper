@@ -82,9 +82,39 @@ def _save_hud_chat_history(data: dict) -> None:
 
 
 def _clean_model_reply(text: str) -> str:
-    """Remove explicit reasoning blocks and trim the user-facing answer."""
+    """Return only the user-facing answer from local-model output.
+
+    Qwen can occasionally place its internal reasoning in the normal content
+    stream even when thinking is disabled. Remove common reasoning sections
+    and narration before sending the result to the HUD.
+    """
     text = re.sub(r"<think>.*?</think>", "", text, flags=re.IGNORECASE | re.DOTALL)
     text = re.sub(r"</?think>", "", text, flags=re.IGNORECASE)
+
+    # Remove common Qwen-style internal deliberation that is emitted as plain
+    # text rather than inside <think> tags. Keep the actual final answer when
+    # it appears after a clear conclusion marker.
+    marker_patterns = [
+        r"(?is).*?(?:final answer|final response|answer to the user)s*[:-]s*",
+        r"(?is).*?(?:response should be|i should respond with|i'll say)s*[:-]s*",
+    ]
+    for pattern in marker_patterns:
+        match = re.match(pattern, text)
+        if match:
+            text = text[match.end():]
+            break
+
+    # Strip obvious meta-deliberation lines at the start, but do not perform
+    # aggressive sentence-level filtering that could delete a legitimate answer.
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    while lines and re.match(
+        r"(?i)^(okay|hmm|important|right|let me|i need to|i should|the user|"
+        r"the key points|checks mental notes|thoughts|reasoning|analysis)\b",
+        lines[0],
+    ):
+        lines.pop(0)
+
+    text = " ".join(lines)
     return text.strip()
 
 

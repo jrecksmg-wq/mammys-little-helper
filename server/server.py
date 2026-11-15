@@ -95,8 +95,8 @@ def _clean_model_reply(text: str) -> str:
     # text rather than inside <think> tags. Keep the actual final answer when
     # it appears after a clear conclusion marker.
     marker_patterns = [
-        r"(?is).*?(?:final answer|final response|answer to the user)\\s*[:-]\\s*",
-        r"(?is).*?(?:response should be|i should respond with|i'll say)\\s*[:-]\\s*",
+        r"(?is).*?(?:final answer|final response|answer to the user)\s*[:-]\s*",
+        r"(?is).*?(?:response should be|i should respond with|i'll say)\s*[:-]\s*",
     ]
     for pattern in marker_patterns:
         match = re.match(pattern, text)

@@ -87,8 +87,8 @@ def _clean_model_reply(text: str) -> str:
     text = re.sub(r"</?think>", "", text, flags=re.IGNORECASE)
 
     marker_patterns = [
-        r"(?is).*?(?:final answer|final response|answer to the user)\\s*[:-]\\s*",
-        r"(?is).*?(?:response should be|i should respond with|i'll say)\\s*[:-]\\s*",
+        r"(?is).*?(?:final answer|final response|answer to the user)\s*[:-]\s*",
+        r"(?is).*?(?:response should be|i should respond with|i'll say)\s*[:-]\s*",
     ]
     for pattern in marker_patterns:
         match = re.match(pattern, text)
@@ -99,7 +99,7 @@ def _clean_model_reply(text: str) -> str:
     # These phrases indicate Qwen has returned its hidden conversation notes,
     # not an answer. Use a short, safe introduction rather than displaying them.
     if re.match(
-        r"(?is)^\\s*(?:we are back to the user|the user has asked|"
+        r"(?is)^\s*(?:we are back to the user|the user has asked|"
         r"as mammy.?s little helper|i must respond|i should respond|"
         r"the user is asking|the user wants|here is how i should|"
         r"i need to respond|let me think|analysis:|reasoning:)",
@@ -110,7 +110,7 @@ def _clean_model_reply(text: str) -> str:
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     while lines and re.match(
         r"(?i)^(okay|hmm|important|right|let me|i need to|i should|the user|"
-        r"the key points|checks mental notes|thoughts|reasoning|analysis)\\b",
+        r"the key points|checks mental notes|thoughts|reasoning|analysis)\b",
         lines[0],
     ):
         lines.pop(0)

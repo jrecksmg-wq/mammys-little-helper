@@ -44,7 +44,7 @@
             <!-- Dynamic State Badge -->
             <div class="ae-core-badge">
               <div class="ae-st-label" id="ae-state-label" data-i18n="standby">STANDBY</div>
-              <div class="ae-st-hint" id="ae-state-hint" data-i18n="hint_standby_hf">SAY "HEY MAGNUS" OR CLICK MIC</div>
+              <div class="ae-st-hint" id="ae-state-hint" data-i18n="hint_standby_hf">SAY "HEY LITTLE HELPER" OR CLICK MIC</div>
             </div>
 
             <!-- Floating Subtitle Card -->

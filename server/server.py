@@ -1747,7 +1747,8 @@ _CODE_MAX_CONTEXT_CHARS = 12_000
 def _code_source_files() -> list[Path]:
     """Return bounded, project-local source files while excluding secrets and generated data."""
     found: list[Path] = []
-    for current, dirs, names in os.walk(ROOT, followlinks=False):
+    project_root = ROOT.parent.resolve()
+    for current, dirs, names in os.walk(project_root, followlinks=False):
         dirs[:] = [d for d in dirs if d not in _CODE_SKIP_DIRS and not d.startswith(".")]
         base = Path(current)
         for name in names:
@@ -1759,7 +1760,7 @@ def _code_source_files() -> list[Path]:
                 continue
             try:
                 resolved = candidate.resolve(strict=True)
-                resolved.relative_to(ROOT.resolve())
+                resolved.relative_to(project_root)
                 if candidate.is_symlink() or not resolved.is_file():
                     continue
                 if resolved.stat().st_size > _CODE_MAX_FILE_BYTES:
@@ -1780,7 +1781,7 @@ def _find_relevant_code(question: str) -> tuple[list[dict], list[dict]]:
     """Rank source files and extract exact, relevant line windows with stable citations."""
     terms = _code_tokens(question)
     ranked: list[tuple[int, str, Path, list[str]]] = []
-    root = ROOT.resolve()
+    root = ROOT.parent.resolve()
     for path in _code_source_files():
         try:
             relative = path.relative_to(root).as_posix()

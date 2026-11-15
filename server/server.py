@@ -39,7 +39,6 @@ from anthropic import Anthropic
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
-from RealtimeSTT import AudioToTextRecorder
 
 try:
     import psutil
@@ -339,8 +338,17 @@ class VoicePipelineServer:
         self.stt_lock = asyncio.Lock()
         self._recorder = None
 
-    def _get_recorder(self) -> AudioToTextRecorder:
+    def _get_recorder(self):
         if self._recorder is None:
+            # Keep the web/chat backend usable on lightweight machines without
+            # importing the heavyweight local speech-recognition stack at startup.
+            try:
+                from RealtimeSTT import AudioToTextRecorder
+            except ImportError as exc:
+                raise RuntimeError(
+                    "Local speech recognition is not installed. Install RealtimeSTT "
+                    "on a supported Python version to enable microphone transcription."
+                ) from exc
             print("Initializing local RealtimeSTT Whisper...", flush=True)
             self._recorder = AudioToTextRecorder(
                 model=self.cfg["stt"].get("model", "base"),

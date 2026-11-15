@@ -1614,7 +1614,7 @@ async def hud_chat(request: Request) -> JSONResponse:
         llm_cfg = CFG.get("llm") or {}
         # Four exchanges are enough for short conversational recall while
         # keeping prompt evaluation manageable on low-memory local machines.
-        history_limit = max(0, int(llm_cfg.get("history_turns", 4))) * 2
+        history_limit = max(0, min(int(llm_cfg.get("history_turns", 4)), 4)) * 2
         parts: list[str] = []
         with _HUD_CHAT_LOCK:
             history = _load_hud_chat_history()

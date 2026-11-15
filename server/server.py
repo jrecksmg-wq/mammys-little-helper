@@ -417,34 +417,43 @@ class VoicePipelineServer:
         self.turn_counter = 0
         self.hermes = HermesAPI(cfg)
         self.stt_lock = asyncio.Lock()
-        self._recorder = None
+        self._local_whisper = None
 
-    def _get_recorder(self):
-        if self._recorder is None:
-            # Keep the web/chat backend usable on lightweight machines without
-            # importing the heavyweight local speech-recognition stack at startup.
-            try:
-                from RealtimeSTT import AudioToTextRecorder
-            except ImportError as exc:
-                raise RuntimeError(
-                    "Local speech recognition is not installed. Install RealtimeSTT "
-                    "on a supported Python version to enable microphone transcription."
-                ) from exc
-            print("Initializing local RealtimeSTT Whisper...", flush=True)
-            self._recorder = AudioToTextRecorder(
-                model=self.cfg["stt"].get("model", "base"),
-                use_microphone=False,
-                spinner=False,
-                device=self.cfg["stt"].get("device", "cpu"),
-                compute_type=self.cfg["stt"].get("compute_type", "int8"),
-                sample_rate=int(self.cfg["stt"].get("sample_rate", 16000)),
-                language=self.cfg["stt"].get("language", ""),
-                beam_size=1,
-                faster_whisper_vad_filter=False,
-                no_log_file=True,
+    def _get_local_whisper(self):
+        """Load a lightweight local Faster-Whisper model on first microphone use."""
+        if self._local_whisper is None:
+            from faster_whisper import WhisperModel
+
+            stt_cfg = self.cfg.get("stt") or {}
+            model_name = stt_cfg.get("model", "base.en")
+            device = stt_cfg.get("device", "cpu")
+            compute_type = stt_cfg.get("compute_type", "int8")
+            cpu_threads = int(stt_cfg.get("cpu_threads", 4))
+            print(
+                f"Loading local Faster-Whisper model '{model_name}' "
+                f"({device}/{compute_type})...",
+                flush=True,
             )
-            print("Local RealtimeSTT Whisper initialized.", flush=True)
-        return self._recorder
+            self._local_whisper = WhisperModel(
+                model_name,
+                device=device,
+                compute_type=compute_type,
+                cpu_threads=cpu_threads,
+                num_workers=1,
+            )
+            print("Local Faster-Whisper ready.", flush=True)
+        return self._local_whisper
+
+    def _transcribe_local_whisper(self, samples: np.ndarray, language: str | None) -> str:
+        model = self._get_local_whisper()
+        segments, _info = model.transcribe(
+            samples,
+            language=language,
+            beam_size=1,
+            vad_filter=False,
+            condition_on_previous_text=False,
+        )
+        return " ".join(segment.text.strip() for segment in segments if segment.text.strip())
 
     WHISPER_HALLUCINATION_WORDS = [
         r"موسیقی\s*متن",
@@ -562,19 +571,21 @@ class VoicePipelineServer:
                     timing.stt_model = f"remote:{remote.get('name', 'gpu')}"
                     timing.stt_final_monotonic = time.perf_counter()
                 return cleaned
-        # 3) local Whisper fallback
-        sample_rate = int(self.cfg["stt"].get("sample_rate", 16000))
+        # 3) Local Faster-Whisper fallback. This works without a cloud STT key.
         samples = (np.frombuffer(audio, dtype=np.int16).astype(np.float32) / 32768.0).copy()
+        stt_cfg = self.cfg.get("stt") or {}
+        requested_language = language or stt_cfg.get("language")
+        if not requested_language or requested_language == "auto":
+            requested_language = None
         try:
-            recorder = self._get_recorder()
             async with self.stt_lock:
-                recorder.feed_audio(samples, original_sample_rate=sample_rate)
-                text = await asyncio.to_thread(recorder.perform_final_transcription, samples, True)
-                recorder.clear_audio_queue()
+                text = await asyncio.to_thread(
+                    self._transcribe_local_whisper, samples, requested_language
+                )
+            if timing:
+                timing.stt_model = f"faster-whisper:{stt_cfg.get('model', 'base.en')}"
         except Exception as exc:
-            # near-silent audio can make whisper raise ("No clip timestamps found");
-            # treat as empty transcript instead of failing the turn
-            print(f"local STT error treated as empty transcript: {exc}", flush=True)
+            print(f"Local Faster-Whisper STT failed: {exc}", flush=True)
             text = ""
         cleaned = self.clean_whisper_transcript((text or "").strip())
         if timing:

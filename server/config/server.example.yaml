@@ -1,9 +1,11 @@
 # Copy to server.yaml and edit. Secrets live in ~/.hermes/.env (NOT here).
 
 llm:
-  provider: gemini            # direct Gemini API chat provider
-  model: gemini-3.8-flash
-  api_key_env: GEMINI_API_KEY
+  provider: ollama             # local Ollama server; no API key required
+  model: qwen3:4b
+  ollama:
+    base_url: http://127.0.0.1:11434
+    timeout: 180
   max_tokens: 220
   temperature: 0.3
   history_turns: 12           # fallback provider only
@@ -16,7 +18,7 @@ hermes:
   timeout: 240
   ack_after_seconds: 0               # >0 = speak a short ack while the agent works
   ack_texts: ["On it.", "Still working.", "Almost there."]
-  fallback_provider: ''         # unused when llm.provider is gemini
+  fallback_provider: ''         # no cloud fallback; local Ollama only
   audible_fillers: true          # Speak instant natural filler ("Checking that now...") during tool execution
   instructions: >
     You are speaking aloud through a voice pipeline. Replies are converted

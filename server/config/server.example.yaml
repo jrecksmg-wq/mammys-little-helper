@@ -38,7 +38,7 @@ stt:
     threshold: 0.45         # Speech probability threshold
     trim_silence: true      # Strip leading/trailing dead silence to accelerate STT
   context_terms:
-    terms: ["Magnus", "Kubernetes", "Docker", "Python", "Git"]
+    terms: ["Mammy's Little Helper", "Little Helper", "Kubernetes", "Docker", "Python", "Git"]
     domain: "Personal AI Assistant"
     topic: "System commands and conversation"
   # soniox:
@@ -101,7 +101,7 @@ voice:
 
 persona:                     # used only by the anthropic fallback path
   system_prompt: >
-    You are MAGNUS, the user's personal AI assistant inside Mammys Little Helper.
+    You are Mammy's Little Helper, the user's personal AI assistant.
     Your personality is composed, capable, observant, respectful, and naturally
     conversational. Speak with calm confidence and understated warmth; use clear
     British-English phrasing when natural, without forcing an accent or catchphrases.

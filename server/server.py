@@ -82,21 +82,13 @@ def _save_hud_chat_history(data: dict) -> None:
 
 
 def _clean_model_reply(text: str) -> str:
-    """Return only the user-facing answer from local-model output.
-
-    Qwen can occasionally place its internal reasoning in the normal content
-    stream even when thinking is disabled. Remove common reasoning sections
-    and narration before sending the result to the HUD.
-    """
+    """Keep model output user-facing; suppress leaked internal narration."""
     text = re.sub(r"<think>.*?</think>", "", text, flags=re.IGNORECASE | re.DOTALL)
     text = re.sub(r"</?think>", "", text, flags=re.IGNORECASE)
 
-    # Remove common Qwen-style internal deliberation that is emitted as plain
-    # text rather than inside <think> tags. Keep the actual final answer when
-    # it appears after a clear conclusion marker.
     marker_patterns = [
-        r"(?is).*?(?:final answer|final response|answer to the user)\s*[:-]\s*",
-        r"(?is).*?(?:response should be|i should respond with|i'll say)\s*[:-]\s*",
+        r"(?is).*?(?:final answer|final response|answer to the user)\\s*[:-]\\s*",
+        r"(?is).*?(?:response should be|i should respond with|i'll say)\\s*[:-]\\s*",
     ]
     for pattern in marker_patterns:
         match = re.match(pattern, text)
@@ -104,19 +96,25 @@ def _clean_model_reply(text: str) -> str:
             text = text[match.end():]
             break
 
-    # Strip obvious meta-deliberation lines at the start, but do not perform
-    # aggressive sentence-level filtering that could delete a legitimate answer.
+    # These phrases indicate Qwen has returned its hidden conversation notes,
+    # not an answer. Use a short, safe introduction rather than displaying them.
+    if re.match(
+        r"(?is)^\\s*(?:we are back to the user|the user has asked|"
+        r"as mammy.?s little helper|i must respond|i should respond|"
+        r"the user is asking|the user wants|here is how i should|"
+        r"i need to respond|let me think|analysis:|reasoning:)",
+        text,
+    ):
+        return "I'm your little AI helper, here to answer your questions and lend a hand."
+
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     while lines and re.match(
         r"(?i)^(okay|hmm|important|right|let me|i need to|i should|the user|"
-        r"the key points|checks mental notes|thoughts|reasoning|analysis)\b",
+        r"the key points|checks mental notes|thoughts|reasoning|analysis)\\b",
         lines[0],
     ):
         lines.pop(0)
-
-    text = " ".join(lines)
-    return text.strip()
-
+    return " ".join(lines).strip()
 
 def _today() -> str:
     return time.strftime("%Y-%m-%d")
@@ -1561,6 +1559,16 @@ async def hud_chat(request: Request) -> JSONResponse:
                 if isinstance(item, dict)
                 and item.get("role") in ("user", "assistant")
                 and isinstance(item.get("content"), str)
+                # Avoid feeding leaked internal narration back into Qwen.
+                and not (
+                    item.get("role") == "assistant"
+                    and re.search(
+                        r"(?i)(we are back to the user|the user has asked|"
+                        r"as mammy.?s little helper|i must respond|"
+                        r"i should respond|the user is asking|checks mental notes)",
+                        item.get("content", ""),
+                    )
+                )
             ]
             # Include prior messages in the Ollama request without changing
             # the public provider interface used by voice chat.
@@ -1568,9 +1576,12 @@ async def hud_chat(request: Request) -> JSONResponse:
                 original_prompt = pipeline.cfg["persona"]["system_prompt"]
                 messages = [
                     {"role": "system", "content": original_prompt.rstrip() + (
-                        "\n\nAnswer directly. Never reveal internal reasoning, "
-                        "private deliberation, planning notes, or hidden analysis. "
-                        "Use natural, consistent conversational language."
+                        "\n\nYou are Mammy's Little Helper, a friendly, capable AI assistant. "
+                        "When asked who you are, answer naturally, for example: "
+                        "'Well, I'm your little AI helper, here to answer your questions and lend a hand.' "
+                        "Keep replies to one short, natural sentence unless the user asks for detail. "
+                        "Speak directly to the user. Never describe the conversation, narrate your "
+                        "thought process, list instructions to yourself, or explain how you should reply."
                     )}
                 ]
                 messages.extend(prior[-history_limit:] if history_limit else [])

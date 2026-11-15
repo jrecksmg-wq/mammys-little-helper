@@ -1770,7 +1770,7 @@ def _code_tokens(value: str) -> set[str]:
 
 
 def _find_relevant_code(question: str) -> tuple[list[dict], list[dict]]:
-    """Rank source files against the question and return bounded excerpts plus citations."""
+    """Rank source files and extract exact, relevant line windows with stable citations."""
     terms = _code_tokens(question)
     ranked: list[tuple[int, str, Path, list[str]]] = []
     root = ROOT.resolve()
@@ -1780,39 +1780,50 @@ def _find_relevant_code(question: str) -> tuple[list[dict], list[dict]]:
             lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
         except (OSError, UnicodeError, ValueError):
             continue
-        searchable = relative + "\n" + "\n".join(lines)
-        file_terms = _code_tokens(searchable)
+        file_terms = _code_tokens(relative + "\\n" + "\\n".join(lines))
         overlap = len(terms & file_terms)
         path_overlap = len(terms & _code_tokens(relative))
         score = overlap + (path_overlap * 5)
         if score:
             ranked.append((score, relative, path, lines))
     ranked.sort(key=lambda item: (-item[0], item[1]))
+
     sources: list[dict] = []
     excerpts: list[dict] = []
     remaining = _CODE_MAX_CONTEXT_CHARS
     for _, relative, _, lines in ranked[:8]:
-        if remaining < 800:
+        if not lines or remaining < 800:
             break
-        # For the initial version, include a compact beginning-to-end excerpt of the best
-        # matching file. Bibliography line ranges are exact for every included excerpt.
-        max_lines = min(len(lines), 150)
-        excerpt = "\n".join(f"{i + 1}: {lines[i]}" for i in range(max_lines))
+        # Select a compact window around the line with the strongest keyword overlap,
+        # rather than blindly sending the top of a large source file.
+        best_index = 0
+        best_score = -1
+        for index, line in enumerate(lines):
+            line_score = len(terms & _code_tokens(line))
+            if line_score > best_score:
+                best_score = line_score
+                best_index = index
+        start = max(0, best_index - 35)
+        stop = min(len(lines), start + 100)
+        start = max(0, stop - 100)
+        excerpt = "\\n".join(f"{i + 1}: {lines[i]}" for i in range(start, stop))
         if len(excerpt) > remaining:
             excerpt = excerpt[:remaining]
+            # Keep the bibliography honest if the final line is cut by the context limit.
+            included_lines = excerpt.count("\\n") + (1 if excerpt else 0)
+            stop = start + included_lines
         if not excerpt.strip():
             continue
         source_id = f"S{len(sources) + 1}"
         sources.append({
             "id": source_id,
             "path": relative,
-            "line_start": 1,
-            "line_end": max_lines,
+            "line_start": start + 1,
+            "line_end": stop,
         })
         excerpts.append({"id": source_id, "path": relative, "code": excerpt})
         remaining -= len(excerpt)
     return excerpts, sources
-
 
 @app.post("/api/code-assistant")
 async def code_assistant(request: Request) -> JSONResponse:

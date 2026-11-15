@@ -1,5 +1,5 @@
 /**
- * J.A.R.V.I.S HUD — Internationalization (i18n) & STT Language Manager
+ * MAGNUS HUD — Internationalization (i18n) & STT Language Manager
  * Supports English, Persian (فارسی), Spanish, French, German, Arabic, Chinese, Russian, Japanese.
  */
 (function(window) {
@@ -17,11 +17,11 @@
       error: "ERROR",
       wake_detected: "WAKE DETECTED!",
       follow_up: "FOLLOW-UP",
-      hint_standby_hf: 'SAY "HEY JARVIS" OR CLICK MIC',
+      hint_standby_hf: 'SAY "HEY MAGNUS" OR CLICK MIC',
       hint_standby_ptt: 'CLICK MIC OR PRESS SPACE TO TALK',
       hint_speaking_pause: 'SPEAKING... (PAUSE TO SEND)',
       hint_follow_up: 'LISTENING · REPLY NOW OR PAUSE 6s TO SLEEP',
-      hint_speaking_jarvis: 'J.A.R.V.I.S IS SPEAKING...',
+      hint_speaking_jarvis: 'MAGNUS IS SPEAKING...',
       subtitle_default: 'Click the mic or press Space to speak',
       engage_voice: "ENGAGE VOICE",
       stop_send: "■ STOP & SEND",
@@ -32,7 +32,7 @@
       transcript: "TRANSCRIPT",
       inspector: "INSPECTOR",
       send: "SEND",
-      input_placeholder: "Ask or speak to Jarvis... (Space to talk)",
+      input_placeholder: "Ask or speak to Magnus... (Space to talk)",
       voice_connected: "VOICE SERVER CONNECTED",
       voice_offline: "VOICE SERVER OFFLINE",
       telemetry: "TELEMETRY",
@@ -127,11 +127,11 @@
       error: "ERROR",
       wake_detected: "¡ACTIVADO!",
       follow_up: "SEGUIMIENTO",
-      hint_standby_hf: 'DI "HEY JARVIS" O TOCA EL MICRÓFONO',
+      hint_standby_hf: 'DI "HEY MAGNUS" O TOCA EL MICRÓFONO',
       hint_standby_ptt: 'TOCA EL MICRÓFONO O PULSA ESPACIO',
       hint_speaking_pause: 'HABLANDO... (PAUSA PARA ENVIAR)',
       hint_follow_up: 'ESCUCHANDO · RESPONDA AHORA O PAUSE 6s',
-      hint_speaking_jarvis: 'J.A.R.V.I.S ESTÁ HABLANDO...',
+      hint_speaking_jarvis: 'MAGNUS ESTÁ HABLANDO...',
       subtitle_default: 'Toca el micrófono o presiona Espacio para hablar',
       engage_voice: "INICIAR VOZ",
       stop_send: "■ DETENER Y ENVIAR",
@@ -142,7 +142,7 @@
       transcript: "TRANSCRIPCIÓN",
       inspector: "SISTEMA",
       send: "ENVIAR",
-      input_placeholder: "Pregunta a Jarvis... (Espacio para hablar)",
+      input_placeholder: "Pregunta a Magnus... (Espacio para hablar)",
       voice_connected: "SERVIDOR DE VOZ CONECTADO",
       voice_offline: "SERVIDOR DE VOZ DESCONECTADO",
       telemetry: "TELEMETRÍA",
@@ -182,11 +182,11 @@
       error: "ERREUR",
       wake_detected: "DÉTECTÉ !",
       follow_up: "SUIVI",
-      hint_standby_hf: 'DITES "HEY JARVIS" OU CLIQUEZ SUR LE MIC',
+      hint_standby_hf: 'DITES "HEY MAGNUS" OU CLIQUEZ SUR LE MIC',
       hint_standby_ptt: 'CLIQUEZ SUR LE MIC OU ESPACE POUR PARLER',
       hint_speaking_pause: 'PARLEZ... (PAUSE POUR ENVOYER)',
       hint_follow_up: 'ÉCOUTE EN COURS · RÉPONDEZ OU PAUSE 6s',
-      hint_speaking_jarvis: 'J.A.R.V.I.S PARLE...',
+      hint_speaking_jarvis: 'MAGNUS PARLE...',
       subtitle_default: 'Cliquez sur le micro ou appuyez sur Espace pour parler',
       engage_voice: "ACTIVER LA VOIX",
       stop_send: "■ ARRÊTER ET ENVOYER",
@@ -197,7 +197,7 @@
       transcript: "TRANSCRIPTION",
       inspector: "INSPECTEUR",
       send: "ENVOYER",
-      input_placeholder: "Demandez à Jarvis... (Espace pour parler)",
+      input_placeholder: "Demandez à Magnus... (Espace pour parler)",
       voice_connected: "SERVEUR VOCAL CONNECTÉ",
       voice_offline: "SERVEUR VOCAL HORS LIGNE",
       telemetry: "TÉLÉMÉTRIE",
@@ -237,11 +237,11 @@
       error: "FEHLER",
       wake_detected: "AKTIVIERT!",
       follow_up: "FOLGEDIALOG",
-      hint_standby_hf: '"HEY JARVIS" SAGEN ODER MIKROFON KLICKEN',
+      hint_standby_hf: '"HEY MAGNUS" SAGEN ODER MIKROFON KLICKEN',
       hint_standby_ptt: 'MIKROFON KLICKEN ODER LEERTASTE DRÜCKEN',
       hint_speaking_pause: 'SPRECHEN... (PAUSE ZUM SENDEN)',
       hint_follow_up: 'ZUHÖREN · JETZT ANTWORTEN ODER 6s WARTEN',
-      hint_speaking_jarvis: 'J.A.R.V.I.S SPRICHT...',
+      hint_speaking_jarvis: 'MAGNUS SPRICHT...',
       subtitle_default: 'Klicken Sie auf das Mikrofon oder drücken Sie die Leertaste',
       engage_voice: "SPRACHE STARTEN",
       stop_send: "■ STOPP & SENDEN",
@@ -252,7 +252,7 @@
       transcript: "TRANSKRIPT",
       inspector: "INSPEKTOR",
       send: "SENDEN",
-      input_placeholder: "Frage an Jarvis... (Leertaste zum Sprechen)",
+      input_placeholder: "Frage an Magnus... (Leertaste zum Sprechen)",
       voice_connected: "SPRACHSERVER VERBUNDEN",
       voice_offline: "SPRACHSERVER GETRENNT",
       telemetry: "TELEMETRIE",
@@ -292,7 +292,7 @@
       error: "خطأ",
       wake_detected: "تم التفعيل!",
       follow_up: "متابعة الحوار",
-      hint_standby_hf: 'قل "HEY JARVIS" أو انقر على الميكروفون',
+      hint_standby_hf: 'قل "HEY MAGNUS" أو انقر على الميكروفون',
       hint_standby_ptt: 'انقر على الميكروفون أو اضغط مسافة',
       hint_speaking_pause: 'تحدث الآن... (توقف قصير للإرسال)',
       hint_follow_up: 'أستمع إليك · أجب الآن أو توقف 6 ثوانٍ للإنهاء',
@@ -347,11 +347,11 @@
       error: "错误",
       wake_detected: "已唤醒！",
       follow_up: "连续对话",
-      hint_standby_hf: '说 "HEY JARVIS" 或点击麦克风',
+      hint_standby_hf: '说 "HEY MAGNUS" 或点击麦克风',
       hint_standby_ptt: '点击麦克风或按空格键讲话',
       hint_speaking_pause: '正在讲话...（停顿自动发送）',
       hint_follow_up: '正在倾听 · 请直接说话或静音6秒进入休眠',
-      hint_speaking_jarvis: 'J.A.R.V.I.S 正在说话...',
+      hint_speaking_jarvis: 'MAGNUS 正在说话...',
       subtitle_default: '点击麦克风或按空格键开始说话',
       engage_voice: "开启语音",
       stop_send: "■ 停止并发送",
@@ -362,7 +362,7 @@
       transcript: "对话记录",
       inspector: "系统监控",
       send: "发送",
-      input_placeholder: "向 Jarvis 提问...（空格键说话）",
+      input_placeholder: "向 Magnus 提问...（空格键说话）",
       voice_connected: "语音服务器已连接",
       voice_offline: "语音服务器离线",
       telemetry: "遥测数据",
@@ -402,11 +402,11 @@
       error: "ОШИБКА",
       wake_detected: "АКТИВИРОВАН!",
       follow_up: "ПРОДОЛЖЕНИЕ",
-      hint_standby_hf: 'СКАЖИТЕ "HEY JARVIS" ИЛИ НАЖМИТЕ МИКРОФОН',
+      hint_standby_hf: 'СКАЖИТЕ "HEY MAGNUS" ИЛИ НАЖМИТЕ МИКРОФОН',
       hint_standby_ptt: 'НАЖМИТЕ МИКРОФОН ИЛИ ПРОБЕЛ ДЛЯ РАЗГОВОРА',
       hint_speaking_pause: 'ГОВОРИТЕ... (ПАУЗА ДЛЯ ОТПРАВКИ)',
       hint_follow_up: 'СЛУШАЮ · ОТВЕТЬТЕ ИЛИ ПОДОЖДИТЕ 6с',
-      hint_speaking_jarvis: 'J.A.R.V.I.S ГОВОРИТ...',
+      hint_speaking_jarvis: 'MAGNUS ГОВОРИТ...',
       subtitle_default: 'Нажмите на микрофон или пробел, чтобы говорить',
       engage_voice: "ГОЛОС",
       stop_send: "■ СТОП И ОТПРАВКА",
@@ -417,7 +417,7 @@
       transcript: "ТЕКСТ",
       inspector: "ИНСПЕКТОР",
       send: "ОТПРАВИТЬ",
-      input_placeholder: "Спросите Jarvis... (Пробел для разговора)",
+      input_placeholder: "Спросите Magnus... (Пробел для разговора)",
       voice_connected: "ГОЛОСОВОЙ СЕРВЕР ПОДКЛЮЧЕН",
       voice_offline: "ГОЛОСОВОЙ СЕРВЕР НЕ В СЕТИ",
       telemetry: "ТЕЛЕМЕТРИЯ",
@@ -457,11 +457,11 @@
       error: "エラー",
       wake_detected: "ウェイクワード検出！",
       follow_up: "会話継続",
-      hint_standby_hf: '「HEY JARVIS」と言うかマイクをクリック',
+      hint_standby_hf: '「HEY MAGNUS」と言うかマイクをクリック',
       hint_standby_ptt: 'マイクをクリックまたはスペースキーで発話',
       hint_speaking_pause: 'お話しください...（無音で自動送信）',
       hint_follow_up: '聞き取り中 · 返答するか6秒間無音でスリープ',
-      hint_speaking_jarvis: 'J.A.R.V.I.S が話しています...',
+      hint_speaking_jarvis: 'MAGNUS が話しています...',
       subtitle_default: 'マイクをクリックするかスペースキーを押して話しかけてください',
       engage_voice: "音声開始",
       stop_send: "■ 停止して送信",
@@ -472,7 +472,7 @@
       transcript: "文字起こし",
       inspector: "システム詳細",
       send: "送信",
-      input_placeholder: "Jarvis に質問...（スペースキーで発話）",
+      input_placeholder: "Magnus に質問...（スペースキーで発話）",
       voice_connected: "音声サーバー接続完了",
       voice_offline: "音声サーバーオフライン",
       telemetry: "テレメトリ",
@@ -569,10 +569,10 @@
 
       this.applyTranslations(document);
 
-      if (window.JarvisCore) {
-        window.JarvisCore.emit("i18n_change", langCode);
-        if (window.JarvisCore.state) {
-          window.JarvisCore.setState(window.JarvisCore.state);
+      if (window.MagnusCore) {
+        window.MagnusCore.emit("i18n_change", langCode);
+        if (window.MagnusCore.state) {
+          window.MagnusCore.setState(window.MagnusCore.state);
         }
       }
     },
@@ -580,12 +580,12 @@
     setSttLanguage(sttCode) {
       currentSttLang = sttCode;
       localStorage.setItem("jarvis_stt_lang", sttCode);
-      if (window.JarvisCore) {
-        if (typeof window.JarvisCore.setSttLanguage === "function") {
-          window.JarvisCore.setSttLanguage(sttCode);
+      if (window.MagnusCore) {
+        if (typeof window.MagnusCore.setSttLanguage === "function") {
+          window.MagnusCore.setSttLanguage(sttCode);
         } else {
-          window.JarvisCore.sttLanguage = sttCode;
-          window.JarvisCore.emit("stt_lang_change", sttCode);
+          window.MagnusCore.sttLanguage = sttCode;
+          window.MagnusCore.emit("stt_lang_change", sttCode);
         }
       }
     },
@@ -611,8 +611,8 @@
       document.documentElement.lang = currentLang;
       document.documentElement.dir = TRANSLATIONS[currentLang]?.dir || "ltr";
 
-      if (window.JarvisCore) {
-        window.JarvisCore.sttLanguage = currentSttLang;
+      if (window.MagnusCore) {
+        window.MagnusCore.sttLanguage = currentSttLang;
       }
       this.applyTranslations(document);
     }

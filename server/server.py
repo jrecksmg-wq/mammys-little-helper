@@ -819,9 +819,16 @@ class VoicePipelineServer:
                 "options": {
                     "temperature": float(llm.get("temperature", 0.3)),
                     # Little Helper aims for short replies; avoid generating excess tokens.
-                    "num_predict": min(int(llm.get("max_tokens", 220)), 64),
-                    # A smaller context reduces memory pressure on low-RAM Chromebooks.
-                    "num_ctx": max(1024, int(ollama_cfg.get("num_ctx", 2048))),
+                    "num_predict": (
+                        max(300, min(int(llm.get("max_tokens", 400)), 700))
+                        if response_mode == "detailed"
+                        else min(int(llm.get("max_tokens", 220)), 64)
+                    ),
+                    # Detailed code reports need more context, but remain bounded for low-RAM machines.
+                    "num_ctx": max(
+                        4096 if response_mode == "detailed" else 1024,
+                        int(ollama_cfg.get("num_ctx", 2048)),
+                    ),
                 },
             }
             try:
@@ -1734,7 +1741,7 @@ _CODE_SKIP_NAMES = {
 _CODE_SECRET_PARTS = ("secret", "credential", "private", "token", "password", "apikey", "api_key", "id_rsa", "id_ed25519")
 _CODE_MAX_FILES = 450
 _CODE_MAX_FILE_BYTES = 300_000
-_CODE_MAX_CONTEXT_CHARS = 18_000
+_CODE_MAX_CONTEXT_CHARS = 12_000
 
 
 def _code_source_files() -> list[Path]:
@@ -1837,6 +1844,11 @@ async def code_assistant(request: Request) -> JSONResponse:
         return JSONResponse({"error": "Please describe what code you want investigated."}, status_code=400)
     if len(question) > 500:
         return JSONResponse({"error": "Please keep the investigation request under 500 characters."}, status_code=400)
+    if (CFG.get("llm") or {}).get("provider") != "ollama":
+        return JSONResponse(
+            {"error": "Read-only code investigation currently requires the local Ollama provider."},
+            status_code=503,
+        )
 
     excerpts, sources = await asyncio.to_thread(_find_relevant_code, question)
     if not excerpts:
@@ -1897,7 +1909,7 @@ async def code_assistant(request: Request) -> JSONResponse:
         bibliography = [
             {
                 **source,
-                "url": f"https://github.com/jrecksmg-wq/mammys-little-helper/blob/magnus-development/{source['path']}#L{source['line_start']}-L{source['line_end']}",
+                "url": f"https://github.com/jrecksmg-wq/mammys-little-helper/blob/feat/self-development-phone-finder/{source['path']}#L{source['line_start']}-L{source['line_end']}",
             }
             for source in sources
         ]

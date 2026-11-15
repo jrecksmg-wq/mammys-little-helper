@@ -1515,16 +1515,33 @@ async def hermes_proxy(path: str, request: Request) -> Response:
     if not _proxy_allowed(request.method, target):
         return Response(status_code=403, content="path not allowed")
     hermes = HERMES
+    # Hermes dashboard/API calls are optional when the assistant is using a
+    # local provider such as Ollama. Return a clean unavailable response rather
+    # than raising an exception on every HUD background poll.
+    try:
+        headers = hermes.headers()
+    except RuntimeError as exc:
+        return JSONResponse(
+            {"error": "Hermes API is not configured", "detail": str(exc)},
+            status_code=503,
+        )
+
     body = await request.body()
     params = dict(request.query_params)
 
     def do_request() -> requests.Response:
         return requests.request(
             request.method, hermes.base + target, params=params,
-            headers=hermes.headers(), data=body if body else None, timeout=300,
+            headers=headers, data=body if body else None, timeout=300,
         )
 
-    resp = await asyncio.to_thread(do_request)
+    try:
+        resp = await asyncio.to_thread(do_request)
+    except requests.RequestException as exc:
+        return JSONResponse(
+            {"error": "Hermes service is unavailable", "detail": str(exc)},
+            status_code=502,
+        )
     return Response(content=resp.content, status_code=resp.status_code,
                     media_type=resp.headers.get("Content-Type", "application/json"))
 

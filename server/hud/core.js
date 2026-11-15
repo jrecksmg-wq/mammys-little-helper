@@ -836,4 +836,7 @@ registerProcessor("pcm16k",PCM16K);`;
   };
 
   window.JarvisCore = JarvisCore;
+  // Backward-compatible alias: the original HUD templates still reference MagnusCore.
+  // Keep both names pointed at the same engine while the project is being renamed.
+  window.MagnusCore = JarvisCore;
 })(window);

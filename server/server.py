@@ -820,13 +820,14 @@ class VoicePipelineServer:
                     "temperature": float(llm.get("temperature", 0.3)),
                     # Little Helper aims for short replies; avoid generating excess tokens.
                     "num_predict": (
-                        max(300, min(int(llm.get("max_tokens", 400)), 700))
+                        # Keep code reports useful but short enough for low-powered machines.
+                        max(120, min(int(llm.get("max_tokens", 180)), 180))
                         if response_mode == "detailed"
                         else min(int(llm.get("max_tokens", 220)), 64)
                     ),
-                    # Detailed code reports need more context, but remain bounded for low-RAM machines.
+                    # A smaller context reduces memory use and prompt-processing time.
                     "num_ctx": max(
-                        4096 if response_mode == "detailed" else 1024,
+                        2048 if response_mode == "detailed" else 1024,
                         int(ollama_cfg.get("num_ctx", 2048)),
                     ),
                 },
@@ -1741,7 +1742,7 @@ _CODE_SKIP_NAMES = {
 _CODE_SECRET_PARTS = ("secret", "credential", "private", "token", "password", "apikey", "api_key", "id_rsa", "id_ed25519")
 _CODE_MAX_FILES = 450
 _CODE_MAX_FILE_BYTES = 300_000
-_CODE_MAX_CONTEXT_CHARS = 12_000
+_CODE_MAX_CONTEXT_CHARS = 6_000
 
 
 def _code_source_files() -> list[Path]:
@@ -1799,7 +1800,7 @@ def _find_relevant_code(question: str) -> tuple[list[dict], list[dict]]:
     sources: list[dict] = []
     excerpts: list[dict] = []
     remaining = _CODE_MAX_CONTEXT_CHARS
-    for _, relative, _, lines in ranked[:8]:
+    for _, relative, _, lines in ranked[:5]:
         if not lines or remaining < 800:
             break
         # Select a compact window around the line with the strongest keyword overlap,

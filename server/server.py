@@ -789,6 +789,8 @@ class VoicePipelineServer:
             payload = {
                 "model": model,
                 "stream": True,
+                # Keep the model loaded between messages to avoid repeated cold starts.
+                "keep_alive": str(ollama_cfg.get("keep_alive", "30m")),
                 # Qwen3 supports disabling its separate reasoning channel.
                 "think": False,
                 "messages": messages,

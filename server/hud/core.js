@@ -63,7 +63,7 @@
         : t("hint_standby_ptt", 'CLICK MIC OR SPACE TO TALK');
 
       let resolvedHint = hint !== undefined ? hint : defaultHint;
-      if (resolvedHint === "J.A.R.V.I.S IS SPEAKING...") {
+      if (resolvedHint === "MAGNUS IS SPEAKING...") {
         resolvedHint = t("hint_speaking_jarvis", resolvedHint);
       } else if (typeof resolvedHint === "string" && (resolvedHint.includes("FOLLOW-UP") || resolvedHint.includes("6s"))) {
         resolvedHint = t("hint_follow_up", resolvedHint);
@@ -282,7 +282,7 @@
           JarvisCore.setState("tool", "WORKING");
           JarvisCore.emit("activity", { text: "", tool: e.tool || "tool", preview: e.preview });
         } else if (e.state === "speaking") {
-          JarvisCore.setState("speaking", "SPEAKING", "J.A.R.V.I.S IS SPEAKING...");
+          JarvisCore.setState("speaking", "SPEAKING", "MAGNUS IS SPEAKING...");
         } else if (e.state === "stopped") {
           JarvisCore.setState("standby", "STANDBY");
           stopPlayback();
@@ -356,11 +356,11 @@
           for (let j = 0; j < res.length; ++j) {
             const phrase = (res[j].transcript || "").toLowerCase().trim();
             const isWake = (
-              phrase.includes("jarvis") ||
-              phrase.includes("جارویس") ||
-              phrase.includes("هی جارویس") ||
-              phrase.includes("hey jarvis") ||
-              phrase.includes("hi jarvis")
+              phrase.includes("magnus") ||
+              phrase.includes("magnus") ||
+              phrase.includes("hey magnus") ||
+              phrase.includes("hey magnus") ||
+              phrase.includes("hi magnus")
             );
             const isStop = (
               phrase.includes("stop") ||
@@ -461,7 +461,7 @@
     this.emit("partial", "");
     if (this.handsFree) {
       ensureCtx();
-      this.emit("log", { type: "sys", text: 'Hands-Free mode ON. Say "Hey Jarvis" or "جارویس" to talk.' });
+      this.emit("log", { type: "sys", text: 'Hands-Free mode ON. Say "Hey Magnus" to talk.' });
       startWakeListening();
       if (this.state === "standby") this.setState("standby", "STANDBY");
     } else {

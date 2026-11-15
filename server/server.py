@@ -796,7 +796,10 @@ class VoicePipelineServer:
                 "messages": messages,
                 "options": {
                     "temperature": float(llm.get("temperature", 0.3)),
-                    "num_predict": min(int(llm.get("max_tokens", 220)), 100),
+                    # Little Helper aims for short replies; avoid generating excess tokens.
+                    "num_predict": min(int(llm.get("max_tokens", 220)), 64),
+                    # A smaller context reduces memory pressure on low-RAM Chromebooks.
+                    "num_ctx": max(1024, int(ollama_cfg.get("num_ctx", 2048))),
                 },
             }
             try:
@@ -825,6 +828,20 @@ class VoicePipelineServer:
                             yield ("text", piece)
                         if chunk.get("error"):
                             raise RuntimeError(f"Ollama error: {chunk['error']}")
+                        if chunk.get("done"):
+                            eval_count = int(chunk.get("eval_count") or 0)
+                            eval_ns = int(chunk.get("eval_duration") or 0)
+                            tokens_per_second = (eval_count * 1_000_000_000 / eval_ns) if eval_ns else 0.0
+                            print(
+                                "[Ollama timing] "
+                                f"total={int(chunk.get('total_duration') or 0) / 1e9:.2f}s "
+                                f"load={int(chunk.get('load_duration') or 0) / 1e9:.2f}s "
+                                f"prompt={int(chunk.get('prompt_eval_count') or 0)} tokens "
+                                f"prompt_eval={int(chunk.get('prompt_eval_duration') or 0) / 1e9:.2f}s "
+                                f"generated={eval_count} tokens "
+                                f"speed={tokens_per_second:.1f} tok/s",
+                                flush=True,
+                            )
                 finally:
                     response.close()
             except requests.RequestException as exc:
@@ -1595,7 +1612,9 @@ async def hud_chat(request: Request) -> JSONResponse:
         timing = TurnTiming(turn_id=0)
         timing.transcript = text
         llm_cfg = CFG.get("llm") or {}
-        history_limit = max(0, int(llm_cfg.get("history_turns", 12))) * 2
+        # Four exchanges are enough for short conversational recall while
+        # keeping prompt evaluation manageable on low-memory local machines.
+        history_limit = max(0, int(llm_cfg.get("history_turns", 4))) * 2
         parts: list[str] = []
         with _HUD_CHAT_LOCK:
             history = _load_hud_chat_history()

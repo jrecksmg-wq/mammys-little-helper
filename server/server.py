@@ -82,9 +82,10 @@ def _save_hud_chat_history(data: dict) -> None:
 
 
 def _clean_model_reply(text: str) -> str:
-    """Keep model output user-facing; suppress leaked internal narration."""
+    """Return only a user-facing answer; never expose model planning or narration."""
     text = re.sub(r"<think>.*?</think>", "", text, flags=re.IGNORECASE | re.DOTALL)
     text = re.sub(r"</?think>", "", text, flags=re.IGNORECASE)
+    text = text.strip()
 
     marker_patterns = [
         r"(?is).*?(?:final answer|final response|answer to the user)\s*[:-]\s*",
@@ -93,18 +94,43 @@ def _clean_model_reply(text: str) -> str:
     for pattern in marker_patterns:
         match = re.match(pattern, text)
         if match:
-            text = text[match.end():]
+            text = text[match.end():].strip()
             break
 
-    # These phrases indicate Qwen has returned its hidden conversation notes,
-    # not an answer. Use a short, safe introduction rather than displaying them.
-    if re.match(
-        r"(?is)^\s*(?:we are back to the user|the user has asked|"
-        r"as mammy.?s little helper|i must respond|i should respond|"
-        r"the user is asking|the user wants|here is how i should|"
-        r"i need to respond|let me think|analysis:|reasoning:)",
-        text,
-    ):
+    # Qwen sometimes ignores the no-reasoning instruction and writes a
+    # first-person plan or a description of its instructions before answering.
+    # If any of these signals appear near the start, discard the whole output:
+    # returning a fragment of the model's private notes is not an answer.
+    internal_narration = re.compile(
+        r"(?is)^\s*(?:"
+        r"first[, ]+i need to|first[, ]+let me|"
+        r"i need to remember|i should remember|"
+        r"as mammy.?s little helper|as the assistant|"
+        r"the user(?:'s| has| is| wants| previously)|"
+        r"we are back to the user|"
+        r"i must respond|i should respond|i need to respond|"
+        r"here is how i should|let me think|"
+        r"my instructions|the instructions say|"
+        r"important(?: response)? rule|"
+        r"analysis\s*:|reasoning\s*:|"
+        r"okay,? the user|hmm,? the user"
+        r")"
+    )
+    if internal_narration.search(text):
+        return "I'm your little AI helper, here to answer your questions and lend a hand."
+
+    # Catch instruction/checklist narration even when the model starts with
+    # a short preamble rather than one of the exact opening phrases above.
+    meta_signals = re.compile(
+        r"(?i)(?:i should (?:use|keep|answer|speak)|"
+        r"i must (?:use|keep|answer|speak)|"
+        r"keep replies? to|british[- ]english|"
+        r"without extra fluff|answer directly without|"
+        r"previous messages show|the user's previous|"
+        r"checks mental notes|thought process|"
+        r"how i should reply)"
+    )
+    if meta_signals.search(text[:500]):
         return "I'm your little AI helper, here to answer your questions and lend a hand."
 
     lines = [line.strip() for line in text.splitlines() if line.strip()]
@@ -114,7 +140,10 @@ def _clean_model_reply(text: str) -> str:
         lines[0],
     ):
         lines.pop(0)
-    return " ".join(lines).strip()
+    cleaned = " ".join(lines).strip()
+    if not cleaned:
+        return "I'm your little AI helper, here to answer your questions and lend a hand."
+    return cleaned
 
 def _today() -> str:
     return time.strftime("%Y-%m-%d")

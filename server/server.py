@@ -1788,7 +1788,7 @@ def _find_relevant_code(question: str) -> tuple[list[dict], list[dict]]:
             lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
         except (OSError, UnicodeError, ValueError):
             continue
-        file_terms = _code_tokens(relative + "\\n" + "\\n".join(lines))
+        file_terms = _code_tokens(relative + "\n" + "\n".join(lines))
         overlap = len(terms & file_terms)
         path_overlap = len(terms & _code_tokens(relative))
         score = overlap + (path_overlap * 5)
@@ -1814,11 +1814,11 @@ def _find_relevant_code(question: str) -> tuple[list[dict], list[dict]]:
         start = max(0, best_index - 35)
         stop = min(len(lines), start + 100)
         start = max(0, stop - 100)
-        excerpt = "\\n".join(f"{i + 1}: {lines[i]}" for i in range(start, stop))
+        excerpt = "\n".join(f"{i + 1}: {lines[i]}" for i in range(start, stop))
         if len(excerpt) > remaining:
             excerpt = excerpt[:remaining]
             # Keep the bibliography honest if the final line is cut by the context limit.
-            included_lines = excerpt.count("\\n") + (1 if excerpt else 0)
+            included_lines = excerpt.count("\n") + (1 if excerpt else 0)
             stop = start + included_lines
         if not excerpt.strip():
             continue

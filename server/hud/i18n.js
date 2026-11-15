@@ -59,7 +59,8 @@
       workspace_frames: "WORKSPACE FRAMES",
       open_kanban: "OPEN KANBAN",
       hermes_dashboard: "HERMES DASHBOARD",
-      chat_interface: "CHAT INTERFACE"
+      chat_interface: "CHAT INTERFACE",
+      find_phone: "FIND PHONE"
     },
     fa: {
       dir: "rtl",
@@ -114,7 +115,8 @@
       workspace_frames: "نماهای محیط کار",
       open_kanban: "مشاهده تسک‌های کانبان",
       hermes_dashboard: "داشبورد هرمس",
-      chat_interface: "محیط چت متنی"
+      chat_interface: "محیط چت متنی",
+      find_phone: "پیدا کردن تلفن"
     },
     es: {
       dir: "ltr",
@@ -169,7 +171,8 @@
       workspace_frames: "ESPACIOS DE TRABAJO",
       open_kanban: "ABRIR KANBAN",
       hermes_dashboard: "PANEL DE HERMES",
-      chat_interface: "INTERFAZ DE CHAT"
+      chat_interface: "INTERFAZ DE CHAT",
+      find_phone: "ENCONTRAR TELÉFONO"
     },
     fr: {
       dir: "ltr",
@@ -224,7 +227,8 @@
       workspace_frames: "CADRES DE TRAVAIL",
       open_kanban: "OUVRIR LE KANBAN",
       hermes_dashboard: "TABLEAU DE BORD HERMES",
-      chat_interface: "INTERFACE DE CHAT"
+      chat_interface: "INTERFACE DE CHAT",
+      find_phone: "TROUVER MON TÉLÉPHONE"
     },
     de: {
       dir: "ltr",
@@ -279,7 +283,8 @@
       workspace_frames: "ARBEITSBEREICHE",
       open_kanban: "KANBAN ÖFFNEN",
       hermes_dashboard: "HERMES-DASHBOARD",
-      chat_interface: "CHAT-OBERFLÄCHE"
+      chat_interface: "CHAT-OBERFLÄCHE",
+      find_phone: "HANDY FINDEN"
     },
     ar: {
       dir: "rtl",
@@ -334,7 +339,8 @@
       workspace_frames: "إطارات مساحة العمل",
       open_kanban: "فتح الكانبان",
       hermes_dashboard: "لوحة تحكم هيرميس",
-      chat_interface: "واجهة المحادثة"
+      chat_interface: "واجهة المحادثة",
+      find_phone: "العثور على الهاتف"
     },
     zh: {
       dir: "ltr",
@@ -389,7 +395,8 @@
       workspace_frames: "工作区框架",
       open_kanban: "打开看板",
       hermes_dashboard: "HERMES 控制台",
-      chat_interface: "聊天界面"
+      chat_interface: "聊天界面",
+      find_phone: "查找手机"
     },
     ru: {
       dir: "ltr",
@@ -444,7 +451,8 @@
       workspace_frames: "РАБОЧИЕ ОБЛАСТИ",
       open_kanban: "ОТКРЫТЬ КАНБАН",
       hermes_dashboard: "ПАНЕЛЬ HERMES",
-      chat_interface: "ИНТЕРФЕЙС ЧАТА"
+      chat_interface: "ИНТЕРФЕЙС ЧАТА",
+      find_phone: "НАЙТИ ТЕЛЕФОН"
     },
     ja: {
       dir: "ltr",
@@ -499,7 +507,8 @@
       workspace_frames: "ワークスペース",
       open_kanban: "カンバンを開く",
       hermes_dashboard: "HERMES ダッシュボード",
-      chat_interface: "チャット画面"
+      chat_interface: "チャット画面",
+      find_phone: "スマホを探す"
     }
   };
 

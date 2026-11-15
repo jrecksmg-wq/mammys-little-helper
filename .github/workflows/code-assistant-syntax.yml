@@ -1,0 +1,28 @@
+name: Code assistant syntax checks
+
+on:
+  pull_request:
+    branches: [magnus-development]
+  push:
+    branches: [magnus-development, feat/self-development-phone-finder]
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Check Python syntax
+        run: python -m py_compile server/server.py
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Check HUD JavaScript syntax
+        run: |
+          node --check server/hud/core.js
+          node --check server/hud/i18n.js

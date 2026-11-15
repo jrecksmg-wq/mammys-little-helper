@@ -106,6 +106,8 @@ html, body {
   font-weight: 600;
 }
 
+phone-finder-link { text-decoration: none; color: #fff; }
+
 /* RTL Language Layout Rules */
 [dir="rtl"] {
   font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -299,6 +301,15 @@ html, body {
             }).join("")}
           </div>
         </div>
+
+        <!-- Open Google's official Android Find Hub in a separate tab. -->
+        <a class="tmpl-btn phone-finder-link" href="https://android.com/find"
+           target="_blank" rel="noopener noreferrer"
+           title="${i18n.t('find_phone') || 'Find my phone'}"
+           aria-label="${i18n.t('find_phone') || 'Find my phone'}">
+          <span>📱</span>
+          <span class="btn-long-label">${i18n.t('find_phone') || 'FIND PHONE'}</span>
+        </a>
 
         <!-- Groq Whisper STT Mode Switcher -->
         <div class="tmpl-selector">

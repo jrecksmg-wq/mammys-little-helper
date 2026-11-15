@@ -696,15 +696,34 @@ registerProcessor("pcm16k",PCM16K);`;
     this.emit("transcript", { text: trimmed, isUser: true });
     this.setState("thinking", "PROCESSING");
     try {
-      const r = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input: trimmed, conversation: CONV })
-      });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error || r.status);
-      (j.tools || []).forEach(t => this.emit("activity", { text: "", tool: t.name, preview: t.preview }));
-      this.emit("transcript", { text: j.text || "(no reply)", isUser: false });
+      // "code:" explicitly switches to read-only repository investigation mode.
+      // Normal chat remains unchanged; this mode never writes to project files.
+      const codeRequest = trimmed.match(/^(?:code|investigate code)\s*:\s*([\s\S]+)$/i);
+      if (codeRequest) {
+        const r = await fetch("/api/code-assistant", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: codeRequest[1].trim() })
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || r.status);
+        const bibliography = (j.bibliography || []).map(source =>
+          `[${source.id}] ${source.path} (lines ${source.line_start}-${source.line_end})\n${source.url}`
+        ).join("\n\n");
+        const answer = (j.report || "No investigation report was returned.") +
+          (bibliography ? "\n\nBIBLIOGRAPHY\n" + bibliography : "");
+        this.emit("transcript", { text: answer, isUser: false });
+      } else {
+        const r = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ input: trimmed, conversation: CONV })
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || r.status);
+        (j.tools || []).forEach(t => this.emit("activity", { text: "", tool: t.name, preview: t.preview }));
+        this.emit("transcript", { text: j.text || "(no reply)", isUser: false });
+      }
     } catch (err) {
       const message = /Failed to fetch|NetworkError|fetch/i.test(err.message)
         ? "The assistant server is not connected yet. The website is open, but its backend is not running."

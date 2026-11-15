@@ -696,6 +696,60 @@ class VoicePipelineServer:
                     if text and timing.llm_first_token_monotonic is None:
                         timing.llm_first_token_monotonic = time.perf_counter()
                     yield ("text", text)
+        elif provider in ("gemini", "google"):
+            key = os.environ.get(llm.get("api_key_env", "GEMINI_API_KEY")) or os.environ.get("GOOGLE_API_KEY")
+            if not key:
+                raise RuntimeError("GEMINI_API_KEY not found. Add it to your local .env file.")
+            model = llm.get("model", "gemini-3.8-flash")
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent"
+            payload = {
+                "systemInstruction": {
+                    "parts": [{"text": self.cfg["persona"]["system_prompt"]}]
+                },
+                "contents": [{"role": "user", "parts": [{"text": transcript}]}],
+                "generationConfig": {
+                    "temperature": float(llm.get("temperature", 0.3)),
+                    "maxOutputTokens": int(llm.get("max_tokens", 220)),
+                },
+            }
+            response = robust_post(
+                url,
+                headers={"x-goog-api-key": key, "Content-Type": "application/json"},
+                params={"alt": "sse"},
+                json=payload,
+                stream=True,
+                timeout=(15, float(llm.get("timeout", 120))),
+            )
+            if response.status_code >= 400:
+                detail = response.text[:500]
+                response.close()
+                raise RuntimeError(f"Gemini API HTTP {response.status_code}: {detail}")
+            try:
+                for raw in response.iter_lines(decode_unicode=True):
+                    if not raw or not raw.startswith("data:"):
+                        continue
+                    data = raw[5:].strip()
+                    if not data or data == "[DONE]":
+                        continue
+                    try:
+                        chunk = json.loads(data)
+                    except json.JSONDecodeError:
+                        continue
+                    for candidate in chunk.get("candidates", []):
+                        parts = (candidate.get("content") or {}).get("parts") or []
+                        for part in parts:
+                            piece = part.get("text") or ""
+                            if piece:
+                                if timing.llm_first_token_monotonic is None:
+                                    timing.llm_first_token_monotonic = time.perf_counter()
+                                yield ("text", piece)
+                    prompt_feedback = chunk.get("promptFeedback") or {}
+                    if prompt_feedback.get("blockReason"):
+                        raise RuntimeError(f"Gemini blocked the prompt: {prompt_feedback['blockReason']}")
+            finally:
+                response.close()
+            timing.llm_provider = "gemini"
+            timing.llm_model = model
         else:
             raise RuntimeError(f"Unsupported LLM provider: {provider}")
 

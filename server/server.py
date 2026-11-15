@@ -687,6 +687,9 @@ class VoicePipelineServer:
             payload = {
                 "model": model,
                 "stream": True,
+                # Qwen3 otherwise spends time in its separate reasoning channel;
+                # the HUD currently displays only message.content.
+                "think": False,
                 "messages": [
                     {"role": "system", "content": self.cfg["persona"]["system_prompt"]},
                     {"role": "user", "content": transcript},
@@ -1459,20 +1462,20 @@ async def hermes_proxy(path: str, request: Request) -> Response:
 
 @app.post("/api/chat")
 async def hud_chat(request: Request) -> JSONResponse:
-    """Typed chat from the HUD — same Hermes session as voice."""
+    """Typed chat from the HUD using the configured local/provider LLM."""
     body = await request.json()
     text = (body.get("input") or "").strip()
-    conversation = body.get("conversation") or (CFG.get("hermes") or {}).get("conversation", "jarvis-main")
+    conversation = body.get("conversation") or (CFG.get("hermes") or {}).get("conversation", "little-helper-main")
     if not text:
         return JSONResponse({"error": "empty input"}, status_code=400)
     out: dict = {"text": "", "tools": [], "run_id": None}
+    print(f"[HUD chat] received {len(text)} characters; provider={CFG.get('llm', {}).get('provider')}; model={CFG.get('llm', {}).get('model')}", flush=True)
 
     def run_sync() -> None:
-        # The HUD's typed-chat endpoint must use the same configured LLM
-        # provider as voice/chat processing. In particular, local Ollama
-        # conversations must not be routed through the separate Hermes API.
+        # Keep typed chat on the same configured provider as the voice pipeline.
         pipeline = get_pipeline()
         timing = TurnTiming(turn_id=0)
+        timing.transcript = text
         parts: list[str] = []
         for kind, value in pipeline.stream_llm_events_sync(text, timing, conversation):
             if kind == "text":
@@ -1490,8 +1493,13 @@ async def hud_chat(request: Request) -> JSONResponse:
 
     try:
         await asyncio.to_thread(run_sync)
+        if not out["text"] and not out["tools"]:
+            print("[HUD chat] provider finished without returning visible text", flush=True)
+            return JSONResponse({"error": "The local model finished without producing a reply. Please try again."}, status_code=502)
+        print(f"[HUD chat] completed; reply={len(out['text'])} characters", flush=True)
         return JSONResponse(out)
     except Exception as exc:
+        print(f"[HUD chat] failed: {type(exc).__name__}: {exc}", flush=True)
         return JSONResponse({"error": str(exc)}, status_code=502)
 
 

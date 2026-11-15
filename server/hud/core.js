@@ -59,7 +59,7 @@
       }
 
       let defaultHint = (this.handsFree) 
-        ? t("hint_standby_hf", 'SAY "HEY MAGNUS" OR CLICK MIC') 
+        ? t("hint_standby_hf", 'SAY "HEY LITTLE HELPER" OR CLICK MIC') 
         : t("hint_standby_ptt", 'CLICK MIC OR SPACE TO TALK');
 
       let resolvedHint = hint !== undefined ? hint : defaultHint;
@@ -356,9 +356,8 @@
           for (let j = 0; j < res.length; ++j) {
             const phrase = (res[j].transcript || "").toLowerCase().trim();
             const isWake = (
-              phrase.includes("magnus") ||
-              phrase.includes("hey magnus") ||
-              phrase.includes("hi magnus")
+              phrase.includes("hey little helper") ||
+              phrase.includes("little helper")
             );
             const isStop = (
               phrase.includes("stop") ||
@@ -459,7 +458,7 @@
     this.emit("partial", "");
     if (this.handsFree) {
       ensureCtx();
-      this.emit("log", { type: "sys", text: 'Hands-Free mode ON. Say "Hey Magnus" to talk.' });
+      this.emit("log", { type: "sys", text: 'Hands-Free mode ON. Say "Hey Little Helper" to talk.' });
       startWakeListening();
       if (this.state === "standby") this.setState("standby", "STANDBY");
     } else {

@@ -1,5 +1,5 @@
 /**
- * J.A.R.V.I.S Voice & Agent Core Engine
+ * MAGNUS Voice & Agent Core Engine
  * Handles Web Audio 16kHz PCM streaming, Groq Whisper STT, Gemini Flash Lite TTS playback,
  * Hands-Free wake-word detection, VAD, approvals, telemetry polling, and event dispatch.
  */

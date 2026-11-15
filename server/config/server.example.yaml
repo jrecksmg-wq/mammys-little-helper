@@ -1,9 +1,9 @@
 # Copy to server.yaml and edit. Secrets live in ~/.hermes/.env (NOT here).
 
 llm:
-  provider: hermes            # primary brain: Hermes Agent API. "anthropic" = basic fallback mode.
-  model: claude-haiku-4-5     # used only by the fallback provider
-  api_key_env: ANTHROPIC_API_KEY
+  provider: gemini            # direct Gemini API chat provider
+  model: gemini-3.8-flash
+  api_key_env: GEMINI_API_KEY
   max_tokens: 220
   temperature: 0.3
   history_turns: 12           # fallback provider only
@@ -16,7 +16,7 @@ hermes:
   timeout: 240
   ack_after_seconds: 0               # >0 = speak a short ack while the agent works
   ack_texts: ["On it.", "Still working.", "Almost there."]
-  fallback_provider: anthropic
+  fallback_provider: ''         # unused when llm.provider is gemini
   audible_fillers: true          # Speak instant natural filler ("Checking that now...") during tool execution
   instructions: >
     You are speaking aloud through a voice pipeline. Replies are converted
@@ -93,13 +93,12 @@ hud:
       name: "Astra (Gemini Style)"
 
 voice:
-  provider: elevenlabs
-  model: eleven_flash_v2_5
-  voice_name: "Your chosen voice"
-  voice_id: YOUR_ELEVENLABS_VOICE_ID
+  provider: edge_tts
+  edge_tts:
+    voice_id: en-GB-RyanNeural
   output_format: pcm_16000
 
-persona:                     # used only by the anthropic fallback path
+persona:                     # system instructions used by the direct LLM providers
   system_prompt: >
     You are Mammy's Little Helper, the user's personal AI assistant.
     Your personality is composed, capable, observant, respectful, and naturally

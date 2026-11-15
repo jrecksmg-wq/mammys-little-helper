@@ -62,6 +62,30 @@ LOG_PATH = ROOT / "logs" / "latency.jsonl"
 STATE_PATH = ROOT / "logs" / "hermes_sessions.json"
 USAGE_PATH = ROOT / "logs" / "usage_stats.json"
 _USAGE_LOCK = threading.Lock()
+_HUD_CHAT_LOCK = threading.Lock()
+HUD_CHAT_HISTORY_PATH = ROOT / "logs" / "hud_chat_history.json"
+
+
+def _load_hud_chat_history() -> dict:
+    try:
+        data = json.loads(HUD_CHAT_HISTORY_PATH.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def _save_hud_chat_history(data: dict) -> None:
+    HUD_CHAT_HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = HUD_CHAT_HISTORY_PATH.with_suffix(".tmp")
+    temp_path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    temp_path.replace(HUD_CHAT_HISTORY_PATH)
+
+
+def _clean_model_reply(text: str) -> str:
+    """Remove explicit reasoning blocks and trim the user-facing answer."""
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.IGNORECASE | re.DOTALL)
+    text = re.sub(r"</?think>", "", text, flags=re.IGNORECASE)
+    return text.strip()
 
 
 def _today() -> str:
@@ -684,14 +708,21 @@ class VoicePipelineServer:
             ollama_cfg = llm.get("ollama") or {}
             base_url = str(ollama_cfg.get("base_url", "http://127.0.0.1:11434")).rstrip("/")
             model = str(llm.get("model", "qwen3:4b"))
+            # The model must return only a user-facing answer, never its private
+            # deliberation, planning notes, or narration about composing a reply.
+            system_prompt = self.cfg["persona"]["system_prompt"].rstrip() + (
+                "\\n\\nAnswer directly to the user. Do not reveal or narrate internal "
+                "reasoning, private deliberation, hidden analysis, planning notes, or "
+                "step-by-step thoughts. Do not describe how you are deciding what to say. "
+                "Use natural, consistent conversational language. Give the answer itself."
+            )
             payload = {
                 "model": model,
                 "stream": True,
-                # Qwen3 otherwise spends time in its separate reasoning channel;
-                # the HUD currently displays only message.content.
+                # Qwen3 supports disabling its separate reasoning channel.
                 "think": False,
                 "messages": [
-                    {"role": "system", "content": self.cfg["persona"]["system_prompt"]},
+                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": transcript},
                 ],
                 "options": {
@@ -1473,22 +1504,115 @@ async def hud_chat(request: Request) -> JSONResponse:
 
     def run_sync() -> None:
         # Keep typed chat on the same configured provider as the voice pipeline.
+        # Persist recent turns locally so the HUD can hold a real conversation.
         pipeline = get_pipeline()
         timing = TurnTiming(turn_id=0)
         timing.transcript = text
+        llm_cfg = CFG.get("llm") or {}
+        history_limit = max(0, int(llm_cfg.get("history_turns", 12))) * 2
         parts: list[str] = []
-        for kind, value in pipeline.stream_llm_events_sync(text, timing, conversation):
-            if kind == "text":
-                parts.append(value)
-            elif kind == "tool":
-                out["tools"].append(json.loads(value))
-            elif kind == "run":
-                out["run_id"] = value
-            elif kind == "final":
-                info = json.loads(value)
-                if info.get("content"):
-                    parts = [info["content"]]
-        out["text"] = "".join(parts).strip()
+        with _HUD_CHAT_LOCK:
+            history = _load_hud_chat_history()
+            prior = history.get(str(conversation), [])
+            if not isinstance(prior, list):
+                prior = []
+            prior = [
+                item for item in prior
+                if isinstance(item, dict)
+                and item.get("role") in ("user", "assistant")
+                and isinstance(item.get("content"), str)
+            ]
+            # Include prior messages in the Ollama request without changing
+            # the public provider interface used by voice chat.
+            if llm_cfg.get("provider") == "ollama":
+                original_prompt = pipeline.cfg["persona"]["system_prompt"]
+                messages = [
+                    {"role": "system", "content": original_prompt.rstrip() + (
+                        "\\n\\nAnswer directly. Never reveal internal reasoning, "
+                        "private deliberation, planning notes, or hidden analysis. "
+                        "Use natural, consistent conversational language."
+                    )}
+                ]
+                messages.extend(prior[-history_limit:] if history_limit else [])
+                messages.append({"role": "user", "content": text})
+                # Temporarily provide the complete message history to the Ollama
+                # provider; restore it even if the request fails.
+                original_stream = pipeline.stream_llm_events_sync
+                def stream_with_history(transcript, turn_timing, conv):
+                    llm = pipeline.cfg["llm"]
+                    ollama_cfg = llm.get("ollama") or {}
+                    base_url = str(ollama_cfg.get("base_url", "http://127.0.0.1:11434")).rstrip("/")
+                    payload = {
+                        "model": str(llm.get("model", "qwen3:4b")),
+                        "stream": True,
+                        "think": False,
+                        "messages": messages,
+                        "options": {
+                            "temperature": float(llm.get("temperature", 0.3)),
+                            "num_predict": int(llm.get("max_tokens", 220)),
+                        },
+                    }
+                    response = requests.post(
+                        f"{base_url}/api/chat", json=payload, stream=True,
+                        timeout=(10, float(ollama_cfg.get("timeout", 180))),
+                    )
+                    if response.status_code >= 400:
+                        detail = response.text[:500]
+                        response.close()
+                        raise RuntimeError(f"Ollama HTTP {response.status_code}: {detail}")
+                    try:
+                        for raw in response.iter_lines(decode_unicode=True):
+                            if not raw:
+                                continue
+                            try:
+                                chunk = json.loads(raw)
+                            except json.JSONDecodeError:
+                                continue
+                            piece = (chunk.get("message") or {}).get("content") or ""
+                            if piece:
+                                if turn_timing.llm_first_token_monotonic is None:
+                                    turn_timing.llm_first_token_monotonic = time.perf_counter()
+                                yield ("text", piece)
+                            if chunk.get("error"):
+                                raise RuntimeError(f"Ollama error: {chunk['error']}")
+                    finally:
+                        response.close()
+                    turn_timing.llm_provider = "ollama"
+                    turn_timing.llm_model = str(llm.get("model", "qwen3:4b"))
+                try:
+                    for kind, value in stream_with_history(text, timing, conversation):
+                        if kind == "text":
+                            parts.append(value)
+                        elif kind == "tool":
+                            out["tools"].append(json.loads(value))
+                        elif kind == "run":
+                            out["run_id"] = value
+                        elif kind == "final":
+                            info = json.loads(value)
+                            if info.get("content"):
+                                parts = [info["content"]]
+                finally:
+                    pipeline.stream_llm_events_sync = original_stream
+            else:
+                for kind, value in pipeline.stream_llm_events_sync(text, timing, conversation):
+                    if kind == "text":
+                        parts.append(value)
+                    elif kind == "tool":
+                        out["tools"].append(json.loads(value))
+                    elif kind == "run":
+                        out["run_id"] = value
+                    elif kind == "final":
+                        info = json.loads(value)
+                        if info.get("content"):
+                            parts = [info["content"]]
+            out["text"] = _clean_model_reply("".join(parts))
+            if out["text"]:
+                updated = prior + [
+                    {"role": "user", "content": text},
+                    {"role": "assistant", "content": out["text"]},
+                ]
+                history[str(conversation)] = updated[-history_limit:] if history_limit else []
+                _save_hud_chat_history(history)
         pipeline.log_turn(timing)
 
     try:

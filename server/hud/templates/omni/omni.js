@@ -65,7 +65,7 @@
             </div>
             <div class="om-sheet-list" id="om-sheet-list"></div>
             <div class="om-sheet-input-row">
-              <input class="om-sheet-inp" id="om-sheet-inp" data-i18n-ph="input_placeholder" placeholder="Message Jarvis... (Space to talk)" autocomplete="off">
+              <input class="om-sheet-inp" id="om-sheet-inp" data-i18n-ph="input_placeholder" placeholder="Message Magnus... (Space to talk)" autocomplete="off">
               <button class="om-btn" id="om-sheet-send" data-i18n="send" style="background:#fff; color:#000; font-weight:600; padding:0 18px">Send</button>
             </div>
           </div>
@@ -96,8 +96,8 @@
 
       let phase = 0;
       const render = (t) => {
-        const st = window.JarvisCore ? window.JarvisCore.state : "standby";
-        const level = window.JarvisCore ? window.JarvisCore.level : 0;
+        const st = window.MagnusCore ? window.MagnusCore.state : "standby";
+        const level = window.MagnusCore ? window.MagnusCore.level : 0;
         phase += 0.04 + (st === "thinking" ? 0.08 : 0);
 
         const W = cv.width, H = cv.height, cx = W / 2, cy = H / 2;
@@ -144,7 +144,7 @@
     },
 
     initEvents() {
-      const core = window.JarvisCore;
+      const core = window.MagnusCore;
       if (!core) return;
 
       const micBtn = document.getElementById("om-mic-btn");
@@ -195,7 +195,7 @@
         voxBtn.querySelector("span").textContent = core.handsFree ? t("hands_free_on", "⚡ Hands-Free: ON") : t("hands_free_off", "⚡ Hands-Free: OFF");
         chatBtn.querySelector("span").textContent = t("transcript", "Transcript");
         stopBtn.querySelector("span").textContent = t("stop", "Stop");
-        sheetInp.placeholder = t("input_placeholder", "Message Jarvis... (Space to talk)");
+        sheetInp.placeholder = t("input_placeholder", "Message Magnus... (Space to talk)");
         sheetSend.textContent = t("send", "Send");
         if (core.state === "standby") {
           document.getElementById("om-subtitle").textContent = t("subtitle_default", "Click the mic or press Space to speak");
@@ -211,7 +211,7 @@
       core.on("transcript", msg => {
         document.getElementById("om-subtitle").textContent = msg.text;
         const div = document.createElement("div");
-        div.className = "om-msg " + (msg.isUser ? "you" : "jarvis");
+        div.className = "om-msg " + (msg.isUser ? "you" : "magnus");
         div.textContent = msg.text;
         sheetList.appendChild(div);
         sheetList.scrollTop = sheetList.scrollHeight;

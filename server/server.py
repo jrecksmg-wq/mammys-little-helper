@@ -95,8 +95,8 @@ def _clean_model_reply(text: str) -> str:
     # text rather than inside <think> tags. Keep the actual final answer when
     # it appears after a clear conclusion marker.
     marker_patterns = [
-        r"(?is).*?(?:final answer|final response|answer to the user)s*[:-]s*",
-        r"(?is).*?(?:response should be|i should respond with|i'll say)s*[:-]s*",
+        r"(?is).*?(?:final answer|final response|answer to the user)\\s*[:-]\\s*",
+        r"(?is).*?(?:response should be|i should respond with|i'll say)\\s*[:-]\\s*",
     ]
     for pattern in marker_patterns:
         match = re.match(pattern, text)
@@ -742,23 +742,32 @@ class VoicePipelineServer:
             # The model must return only a user-facing answer, never its private
             # deliberation, planning notes, or narration about composing a reply.
             system_prompt = self.cfg["persona"]["system_prompt"].rstrip() + (
-                "\n\nAnswer directly to the user. Do not reveal or narrate internal "
-                "reasoning, private deliberation, hidden analysis, planning notes, or "
-                "step-by-step thoughts. Do not describe how you are deciding what to say. "
-                "Use natural, consistent conversational language. Give the answer itself."
+                "\n\nIMPORTANT RESPONSE RULE: Reply to every user message with exactly ONE "
+                "short, natural sentence. Aim for 8-18 words. Answer the question directly. "
+                "Never output analysis, internal reasoning, planning, instructions to yourself, "
+                "or commentary about the conversation. Do not announce what you are about to do. "
+                "Do not use bullets or lists unless the user explicitly asks for them."
             )
+            messages = messages_override or [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": transcript},
+            ]
+            # Chat history supplies its own system message; strengthen it too.
+            if messages and messages[0].get("role") == "system":
+                messages[0] = {
+                    **messages[0],
+                    "content": str(messages[0].get("content", "")).rstrip()
+                    + "\n\n" + system_prompt.split("\n\nIMPORTANT RESPONSE RULE: ", 1)[1],
+                }
             payload = {
                 "model": model,
                 "stream": True,
                 # Qwen3 supports disabling its separate reasoning channel.
                 "think": False,
-                "messages": messages_override or [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": transcript},
-                ],
+                "messages": messages,
                 "options": {
                     "temperature": float(llm.get("temperature", 0.3)),
-                    "num_predict": int(llm.get("max_tokens", 220)),
+                    "num_predict": min(int(llm.get("max_tokens", 220)), 100),
                 },
             }
             try:

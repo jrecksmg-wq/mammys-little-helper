@@ -1468,32 +1468,25 @@ async def hud_chat(request: Request) -> JSONResponse:
     out: dict = {"text": "", "tools": [], "run_id": None}
 
     def run_sync() -> None:
-        timeout = float((CFG.get("hermes") or {}).get("timeout", 240))
-
-        def consume(sid: str) -> list[str]:
-            parts: list[str] = []
-            for kind, value in HERMES.chat_stream_events(sid, text, timeout):
-                if kind == "text":
-                    parts.append(value)
-                elif kind == "tool":
-                    out["tools"].append(json.loads(value))
-                elif kind == "run":
-                    out["run_id"] = value
-                elif kind == "final":
-                    info = json.loads(value)
-                    if info.get("content"):
-                        parts = [info["content"]]
-            return parts
-
-        try:
-            parts = consume(HERMES.get_session_id(conversation))
-        except RuntimeError as exc:
-            if "404" not in str(exc):
-                raise
-            # stale session id (e.g. profile switch / DB reset) -> recreate once
-            out["tools"].clear()
-            parts = consume(HERMES.get_session_id(conversation, force_new=True))
+        # The HUD's typed-chat endpoint must use the same configured LLM
+        # provider as voice/chat processing. In particular, local Ollama
+        # conversations must not be routed through the separate Hermes API.
+        pipeline = get_pipeline()
+        timing = TurnTiming(turn_id=0)
+        parts: list[str] = []
+        for kind, value in pipeline.stream_llm_events_sync(text, timing, conversation):
+            if kind == "text":
+                parts.append(value)
+            elif kind == "tool":
+                out["tools"].append(json.loads(value))
+            elif kind == "run":
+                out["run_id"] = value
+            elif kind == "final":
+                info = json.loads(value)
+                if info.get("content"):
+                    parts = [info["content"]]
         out["text"] = "".join(parts).strip()
+        pipeline.log_turn(timing)
 
     try:
         await asyncio.to_thread(run_sync)

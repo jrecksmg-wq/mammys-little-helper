@@ -712,7 +712,7 @@ class VoicePipelineServer:
             # The model must return only a user-facing answer, never its private
             # deliberation, planning notes, or narration about composing a reply.
             system_prompt = self.cfg["persona"]["system_prompt"].rstrip() + (
-                "\\n\\nAnswer directly to the user. Do not reveal or narrate internal "
+                "\n\nAnswer directly to the user. Do not reveal or narrate internal "
                 "reasoning, private deliberation, hidden analysis, planning notes, or "
                 "step-by-step thoughts. Do not describe how you are deciding what to say. "
                 "Use natural, consistent conversational language. Give the answer itself."
@@ -1529,7 +1529,7 @@ async def hud_chat(request: Request) -> JSONResponse:
                 original_prompt = pipeline.cfg["persona"]["system_prompt"]
                 messages = [
                     {"role": "system", "content": original_prompt.rstrip() + (
-                        "\\n\\nAnswer directly. Never reveal internal reasoning, "
+                        "\n\nAnswer directly. Never reveal internal reasoning, "
                         "private deliberation, planning notes, or hidden analysis. "
                         "Use natural, consistent conversational language."
                     )}

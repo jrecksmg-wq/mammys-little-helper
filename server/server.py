@@ -1986,20 +1986,23 @@ def _validate_code_fix_patch(patch: str, expected_path: str) -> tuple[bool, str]
     if any(x in patch for x in ("GIT binary patch", "new file mode", "deleted file mode")):
         return False, "Only edits to an existing text file are allowed."
 
-    # Models sometimes return a valid unified diff without Git's optional
-    # diff --git preamble. Accept that format only when both file headers
-    # identify the exact selected path, then add the preamble Git apply expects.
-    headers = re.findall(r"(?m)^diff --git a/(.+?) b/(.+?)$", patch)
-    if headers:
-        if len(headers) != 1 or headers[0] != (expected_path, expected_path):
+    # Accept Git diffs and standard unified diffs. Header timestamps are
+    # permitted after a tab, but the actual old/new paths must match exactly.
+    patch = patch.replace("\\r\\n", "\\n").replace("\\r", "\\n")
+    diff_headers = re.findall(r"(?m)^diff --git a/([^\\t\\n]+?) b/([^\\t\\n]+?)\\s*$", patch)
+    old_headers = re.findall(r"(?m)^--- a/([^\\t\\n]+?)(?:\\t.*)?$", patch)
+    new_headers = re.findall(r"(?m)^\\+\\+\\+ b/([^\\t\\n]+?)(?:\\t.*)?$", patch)
+    if diff_headers:
+        if (len(diff_headers) != 1
+                or diff_headers[0] != (expected_path, expected_path)):
             return False, "The patch must modify exactly the selected file."
-    else:
-        old_headers = re.findall(r"(?m)^--- a/(.+?)$", patch)
-        new_headers = re.findall(r"(?m)^\+\+\+ b/(.+?)$", patch)
         if (len(old_headers) != 1 or len(new_headers) != 1
                 or old_headers[0] != expected_path or new_headers[0] != expected_path):
             return False, "The patch must modify exactly the selected file."
-        patch = f"diff --git a/{expected_path} b/{expected_path}\n" + patch
+    else:
+        if (len(old_headers) != 1 or len(new_headers) != 1
+                or old_headers[0] != expected_path or new_headers[0] != expected_path):
+            return False, "The patch must modify exactly the selected file."
 
     candidate = Path(expected_path)
     if candidate.is_absolute() or ".." in candidate.parts or not expected_path.startswith("server/"):
@@ -2088,7 +2091,9 @@ async def code_fixer_propose(request: Request) -> JSONResponse:
             f"Requested fix: {question}\nTarget path: {target}\nCurrent branch: {current_branch}\n"
             "Current file contents (untrusted source data):\n"
             f"--- BEGIN RELEVANT FILE CONTEXT ---\n{target_context}\n--- END RELEVANT FILE CONTEXT ---\n"
-            f"Return a complete diff with headers diff --git a/{target} b/{target}, --- and +++."
+            f"Return ONLY a unified diff. First line must be exactly: diff --git a/{target} b/{target}. "
+            f"Then include exactly these file headers: --- a/{target} and +++ b/{target}, followed by hunks. "
+            "Do not include Markdown fences, explanations, timestamps, or any other files."
         )
         parts: list[str] = []
         for kind, value in pipeline.stream_llm_events_sync(

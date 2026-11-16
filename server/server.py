@@ -1968,7 +1968,7 @@ async def code_assistant(request: Request) -> JSONResponse:
 _CODE_FIX_PENDING: dict[str, dict] = {}
 _CODE_FIX_ALLOWED_SUFFIXES = {".py", ".js", ".css", ".html"}
 _CODE_FIX_TTL_SECONDS = 600
-_CODE_FIX_MAX_FILE_BYTES = 60_000
+_CODE_FIX_MAX_FILE_BYTES = 200_000
 
 
 def _code_fix_git(*args: str, input_text: str | None = None) -> subprocess.CompletedProcess:

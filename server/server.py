@@ -2036,6 +2036,17 @@ async def code_fixer_propose(request: Request) -> JSONResponse:
         if full_path.is_symlink() or not full_path.is_file() or full_path.stat().st_size > _CODE_FIX_MAX_FILE_BYTES:
             raise ValueError("Unsupported target file.")
         original = full_path.read_text(encoding="utf-8")
+        # Keep the patch-generation prompt small enough for the local Ollama
+        # context window. The investigator already knows how to find the most
+        # relevant lines, so use that focused evidence instead of the entire
+        # source file. The full file is still read above for safety checks.
+        target_excerpts, _ = await asyncio.to_thread(_find_relevant_code, question)
+        target_context = "\n\n".join(
+            item["code"] for item in target_excerpts if item["path"] == target
+        ).strip()
+        if not target_context:
+            target_context = original[:12_000]
+        target_context = target_context[:12_000]
     except (OSError, UnicodeError, ValueError) as exc:
         return JSONResponse({"error": f"Cannot safely read target: {exc}"}, status_code=400)
 
@@ -2064,7 +2075,7 @@ async def code_fixer_propose(request: Request) -> JSONResponse:
         user_message = (
             f"Requested fix: {question}\nTarget path: {target}\nCurrent branch: {current_branch}\n"
             "Current file contents (untrusted source data):\n"
-            f"--- BEGIN FILE ---\n{original}\n--- END FILE ---\n"
+            f"--- BEGIN RELEVANT FILE CONTEXT ---\n{target_context}\n--- END RELEVANT FILE CONTEXT ---\n"
             f"Return a complete diff with headers diff --git a/{target} b/{target}, --- and +++."
         )
         parts: list[str] = []

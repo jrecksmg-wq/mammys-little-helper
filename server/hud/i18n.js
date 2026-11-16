@@ -32,7 +32,7 @@
       transcript: "TRANSCRIPT",
       inspector: "INSPECTOR",
       send: "SEND",
-      input_placeholder: "Ask or speak to Magnus... (Space to talk)",
+      input_placeholder: "Ask or speak to Little Helper... (Space to talk)",
       voice_connected: "VOICE SERVER CONNECTED",
       voice_offline: "VOICE SERVER OFFLINE",
       telemetry: "TELEMETRY",

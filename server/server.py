@@ -974,15 +974,15 @@ class VoicePipelineServer:
         # default at the request boundary instead of relying on its global setup.
         # Explicit requests for detail, steps, lists, or code remain unrestricted.
         detail_request = re.search(
-            r"(?i)\\b(detail(?:ed)?|step[- ]by[- ]step|steps|bullet points|"
-            r"list|examples|code|explain fully|in depth|comprehensive)\\b",
+            r"(?i)\b(detail(?:ed)?|step[- ]by[- ]step|steps|bullet points|"
+            r"list|examples|code|explain fully|in depth|comprehensive)\b",
             transcript,
         )
         if not detail_request:
             transcript = (
                 "Reply in exactly one short, natural sentence (about 8–18 words). "
                 "Answer directly; do not repeat greetings or add a second sentence. "
-                "Only give a longer answer if I explicitly request details, steps, a list, or code.\\n\\n"
+                "Only give a longer answer if I explicitly request details, steps, a list, or code.\n\n"
                 + transcript
             )
         try:

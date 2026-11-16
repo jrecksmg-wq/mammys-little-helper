@@ -1399,26 +1399,28 @@ class VoicePipelineServer:
                 loop.call_soon_threadsafe(q.put_nowait, exc)
 
         worker_task = asyncio.create_task(asyncio.to_thread(worker))
-        audio_parts: list[bytes] = []
+        edge_audio_parts: list[bytes] = []
+        is_edge_tts = False
         while True:
             item = await q.get()
             if item is None:
                 break
             if isinstance(item, Exception):
                 raise item
-            audio_parts.append(item)
+            if timing.tts_model == "edge-tts":
+                is_edge_tts = True
+                edge_audio_parts.append(item)
+            else:
+                # Keep the existing low-latency streaming behaviour for PCM
+                # providers such as ElevenLabs and the other configured engines.
+                await ws.send_bytes(item)
         await worker_task
 
-        if not audio_parts:
-            return
-        if timing.tts_model == "edge-tts":
+        if is_edge_tts and edge_audio_parts:
             # Edge-TTS supplies MP3. Let the browser decode it instead of
             # requiring FFmpeg on the server machine.
             await ws.send_json({"type": "audio_format", "format": "audio/mpeg"})
-            await ws.send_bytes(b"".join(audio_parts))
-        else:
-            for chunk in audio_parts:
-                await ws.send_bytes(chunk)
+            await ws.send_bytes(b"".join(edge_audio_parts))
 
     @staticmethod
     def _extract_complete_sentences(text: str) -> tuple[list[str], str]:

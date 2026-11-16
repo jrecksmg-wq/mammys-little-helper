@@ -990,52 +990,33 @@ class VoicePipelineServer:
     # ------------------------------------------------------------------ TTS
 
     def _edge_tts_chunks_sync(self, text: str, timing: TurnTiming, voice: dict) -> Iterator[bytes]:
-        import edge_tts, subprocess
+        """Return one encoded MP3 payload; the HUD decodes it with Web Audio.
+
+        This deliberately avoids an FFmpeg system dependency on lightweight
+        Chromebook/Linux installs. The caller sends the payload as one binary
+        WebSocket message after announcing its audio format.
+        """
+        import edge_tts
         timing.tts_model = "edge-tts"
-        # Always use the edge_tts-specific voice id. Never use the top-level voice_id
-        # (that is the ElevenLabs voice id which is an invalid Edge-TTS voice name).
         voice_id = voice.get("edge_tts", {}).get("voice_id") or "en-GB-RyanNeural"
         timing.voice_id = voice_id
         timing.tts_request_start_monotonic = timing.tts_request_start_monotonic or time.perf_counter()
         record_usage(tts_chars=len(text))
 
-        cmd = [
-            "ffmpeg", "-hide_banner", "-loglevel", "error",
-            "-i", "pipe:0",
-            "-f", "s16le", "-ar", "16000", "-ac", "1",
-            "pipe:1"
-        ]
-        proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        async def collect_audio() -> bytes:
+            parts: list[bytes] = []
+            communicate = edge_tts.Communicate(text, voice_id)
+            async for item in communicate.stream():
+                if item.get("type") == "audio" and item.get("data"):
+                    parts.append(item["data"])
+            return b"".join(parts)
 
-        def runner():
-            async def run():
-                comm = edge_tts.Communicate(text, voice_id)
-                async for chunk in comm.stream():
-                    if chunk["type"] == "audio":
-                        try:
-                            proc.stdin.write(chunk["data"])
-                        except Exception:
-                            break
-                try:
-                    proc.stdin.close()
-                except Exception:
-                    pass
-            asyncio.run(run())
-
-        t = threading.Thread(target=runner, daemon=True)
-        t.start()
-
-        try:
-            while True:
-                chunk = proc.stdout.read(4096)
-                if not chunk:
-                    break
-                if timing.first_tts_audio_byte_monotonic is None:
-                    timing.first_tts_audio_byte_monotonic = time.perf_counter()
-                yield chunk
-        finally:
-            proc.wait()
-            t.join(timeout=2)
+        audio = asyncio.run(collect_audio())
+        if not audio:
+            raise RuntimeError("Edge-TTS returned no audio data")
+        if timing.first_tts_audio_byte_monotonic is None:
+            timing.first_tts_audio_byte_monotonic = time.perf_counter()
+        yield audio
 
     def _gemini_tts_chunks_sync(self, text: str, timing: TurnTiming, voice: dict) -> Iterator[bytes]:
         import requests, base64, subprocess
@@ -1418,14 +1399,26 @@ class VoicePipelineServer:
                 loop.call_soon_threadsafe(q.put_nowait, exc)
 
         worker_task = asyncio.create_task(asyncio.to_thread(worker))
+        audio_parts: list[bytes] = []
         while True:
             item = await q.get()
             if item is None:
                 break
             if isinstance(item, Exception):
                 raise item
-            await ws.send_bytes(item)
+            audio_parts.append(item)
         await worker_task
+
+        if not audio_parts:
+            return
+        if timing.tts_model == "edge-tts":
+            # Edge-TTS supplies MP3. Let the browser decode it instead of
+            # requiring FFmpeg on the server machine.
+            await ws.send_json({"type": "audio_format", "format": "audio/mpeg"})
+            await ws.send_bytes(b"".join(audio_parts))
+        else:
+            for chunk in audio_parts:
+                await ws.send_bytes(chunk)
 
     @staticmethod
     def _extract_complete_sentences(text: str) -> tuple[list[str], str]:

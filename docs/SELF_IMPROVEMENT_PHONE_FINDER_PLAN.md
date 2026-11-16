@@ -36,9 +36,30 @@ Normal messages without the `code:` prefix continue to use ordinary chat.
 - The model may make mistakes. Verify important conclusions against the cited source lines.
 - The bibliography identifies the source excerpts supplied to the model; it does not mean every statement is independently proven.
 
-## Future code-editing capability (not included yet)
+## Controlled code fixer (initial approval-gated release)
 
-A later version may prepare code patches in a separate branch, run tests in a restricted environment, show a diff, and request approval before applying changes. No autonomous code editing or self-repair is enabled in this release.
+The HUD now supports two additional chat commands:
+
+- `fix: [describe one bug or small improvement]` asks the local Ollama model to prepare a patch for one relevant source file.
+- `approve fix [12-character proposal ID]` applies that exact reviewed patch to the local working tree.
+- `reject fix [12-character proposal ID]` discards the pending proposal.
+
+The proposal response includes the target path, branch, complete unified diff, proposal ID, and expiry. Preparing a proposal does not write files. Proposals expire after ten minutes and are held in server memory; restarting the server discards them.
+
+### Safety boundaries
+
+- The fixer requires the local Ollama provider and an existing Git development branch. It refuses `main` and `master`.
+- The initial allowlist is limited to one existing text file under `server/` with a `.py`, `.js`, `.css`, or `.html` extension, no larger than 60 KB.
+- The target file must be clean in Git before proposal generation and must remain unchanged until approval.
+- The patch must modify exactly that one existing file. File creation, deletion, renaming, binary patches, and edits outside the allowlist are rejected.
+- Git performs a dry-run before the proposal is shown and again immediately before approval is applied.
+- Applying a patch changes only the local working tree. The fixer does not commit, push, deploy, install packages, or execute project code.
+- A person must inspect the diff and explicitly type the matching approval command. A rejection discards the proposal.
+- The proposal store is in memory and is not shared across server processes or restarts.
+
+### Important limitations
+
+This is a controlled patch-preparation and application feature, not unrestricted autonomous self-improvement. The model can still propose incorrect code. The current release does not automatically run tests, prove correctness, create backups, or roll back changes. After approval, inspect `git diff`, run the relevant tests, and commit only after the changes are understood. The original read-only `code:` investigation command remains available.
 
 ## Android phone finder
 

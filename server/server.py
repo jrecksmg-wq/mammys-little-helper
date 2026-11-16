@@ -998,7 +998,7 @@ class VoicePipelineServer:
         """
         import edge_tts
         timing.tts_model = "edge-tts"
-        voice_id = voice.get("edge_tts", {}).get("voice_id") or "en-GB-RyanNeural"
+        voice_id = voice.get("edge_tts", {}).get("voice_id") or "en-GB-SoniaNeural"
         timing.voice_id = voice_id
         timing.tts_request_start_monotonic = timing.tts_request_start_monotonic or time.perf_counter()
         record_usage(tts_chars=len(text))
@@ -1025,8 +1025,8 @@ class VoicePipelineServer:
             or os.environ.get("GOOGLE_API_KEY")
         )
         if not key:
-            print("Gemini API key not found. Falling back to native Persian Edge-TTS...", flush=True)
-            yield from self._edge_tts_chunks_sync(text, timing, {"voice_id": "fa-IR-FaridNeural"})
+            print("Gemini API key not found. Falling back to British female Edge-TTS...", flush=True)
+            yield from self._edge_tts_chunks_sync(text, timing, {"voice_id": "en-GB-SoniaNeural"})
             return
 
         gemini_cfg = voice.get("gemini") or {}
@@ -1091,8 +1091,8 @@ class VoicePipelineServer:
                 break
 
         if not audio_bytes:
-            print("Gemini TTS unavailable or quota exceeded. Falling back to native Persian Edge-TTS...", flush=True)
-            yield from self._edge_tts_chunks_sync(text, timing, {"voice_id": "fa-IR-FaridNeural"})
+            print("Gemini TTS unavailable or quota exceeded. Falling back to British female Edge-TTS...", flush=True)
+            yield from self._edge_tts_chunks_sync(text, timing, {"voice_id": "en-GB-SoniaNeural"})
             return
 
         # Handle containerized WAV vs raw PCM dynamically
@@ -1113,7 +1113,7 @@ class VoicePipelineServer:
         pcm_16k = proc.stdout
         if proc.returncode != 0 or not pcm_16k:
             print(f"FFmpeg conversion error: {proc.stderr.decode()[:200]}. Falling back to Edge-TTS...", flush=True)
-            yield from self._edge_tts_chunks_sync(text, timing, {"voice_id": "fa-IR-FaridNeural"})
+            yield from self._edge_tts_chunks_sync(text, timing, {"voice_id": "en-GB-SoniaNeural"})
             return
 
         for i in range(0, len(pcm_16k), 4096):
@@ -1176,8 +1176,8 @@ class VoicePipelineServer:
             err_text = response.text[:1000]
             response.close()
             if "paid_plan_required" in err_text or "payment_required" in err_text:
-                print("ElevenLabs library voice requires paid plan. Falling back to native Persian Edge-TTS (fa-IR-FaridNeural)...", flush=True)
-                yield from self._edge_tts_chunks_sync(text, timing, {"voice_id": "fa-IR-FaridNeural"})
+                print("ElevenLabs library voice requires paid plan. Falling back to British female Edge-TTS (en-GB-SoniaNeural)...", flush=True)
+                yield from self._edge_tts_chunks_sync(text, timing, {"voice_id": "en-GB-SoniaNeural"})
                 return
             raise RuntimeError(f"ElevenLabs HTTP {response.status_code}: {err_text}")
         try:

@@ -88,6 +88,7 @@
 
   /* ============================== Audio Output ========================== */
   let playhead = 0, activeSources = [], leftoverByte = null, audioArrived = false;
+  let nextAudioFormat = "pcm_s16le";
 
   function ensureCtx() {
     if (!JarvisCore.audioCtx) {
@@ -138,6 +139,27 @@
       }
     };
     audioArrived = true;
+  }
+
+  async function playEncodedChunk(buf) {
+    const ctx = ensureCtx();
+    try {
+      const decoded = await ctx.decodeAudioData(buf.slice(0));
+      const src = ctx.createBufferSource();
+      src.buffer = decoded;
+      src.connect(ctx.destination);
+      const t = Math.max(ctx.currentTime + 0.06, playhead);
+      src.start(t);
+      playhead = t + decoded.duration;
+      activeSources.push(src);
+      src.onended = () => {
+        activeSources = activeSources.filter(x => x !== src);
+        if (!JarvisCore.serverTurnActive && activeSources.length === 0) onPlaybackEnded();
+      };
+      audioArrived = true;
+    } catch (err) {
+      JarvisCore.emit("log", { type: "sys", text: "audio decode failed: " + (err?.message || err) });
+    }
   }
 
   function onPlaybackEnded() {
@@ -245,13 +267,18 @@
     ws.onerror = () => {};
     ws.onmessage = ev => {
       if (ev.data instanceof ArrayBuffer) {
-        playChunk(ev.data);
+        const format = nextAudioFormat;
+        nextAudioFormat = "pcm_s16le";
+        if (format === "audio/mpeg") playEncodedChunk(ev.data);
+        else playChunk(ev.data);
         return;
       }
       let e;
       try { e = JSON.parse(ev.data); } catch { return; }
 
-      if (e.type === "summon_panel") {
+      if (e.type === "audio_format") {
+        nextAudioFormat = e.format || "pcm_s16le";
+      } else if (e.type === "summon_panel") {
         JarvisCore.emit("summon_panel", e);
       } else if (e.type === "dismiss_panels") {
         JarvisCore.emit("dismiss_panels");

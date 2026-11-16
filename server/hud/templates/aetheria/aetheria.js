@@ -87,7 +87,7 @@
           <footer class="ae-dock-wrap">
             <div class="ae-dock">
               <button class="ae-dock-btn" id="ae-vox-btn" title="Toggle Hands-Free Mode (H)">
-                <span>⚡ HANDS-FREE: ON</span>
+                <span>⚡ HANDS-FREE: OFF</span>
               </button>
               
               <button class="ae-mic-btn" id="ae-mic-btn" title="Engage Voice (Space)">

@@ -994,7 +994,7 @@ class VoicePipelineServer:
         timing.tts_model = "edge-tts"
         # Always use the edge_tts-specific voice id. Never use the top-level voice_id
         # (that is the ElevenLabs voice id which is an invalid Edge-TTS voice name).
-        voice_id = voice.get("edge_tts", {}).get("voice_id") or "fa-IR-FaridNeural"
+        voice_id = voice.get("edge_tts", {}).get("voice_id") or "en-GB-RyanNeural"
         timing.voice_id = voice_id
         timing.tts_request_start_monotonic = timing.tts_request_start_monotonic or time.perf_counter()
         record_usage(tts_chars=len(text))
@@ -1168,7 +1168,9 @@ class VoicePipelineServer:
 
         key = os.environ.get("ELEVENLABS_API_KEY") or os.environ.get("ELEVEN_API_KEY") or os.environ.get("XI_API_KEY")
         if not key:
-            raise RuntimeError("ElevenLabs API key not found")
+            print("ElevenLabs API key not found; using free Edge-TTS fallback.", flush=True)
+            yield from self._edge_tts_chunks_sync(text, timing, voice)
+            return
         timing.tts_model = voice.get("model", "eleven_multilingual_v2")
         timing.voice_id = voice["voice_id"]
         timing.tts_request_start_monotonic = timing.tts_request_start_monotonic or time.perf_counter()
@@ -1327,7 +1329,10 @@ class VoicePipelineServer:
                         if filler:
                             await ws.send_json({"type": "agent_status", "state": "speaking"})
                             conn.spoken_sentences.append(filler)
-                            await self._send_tts_sentence(ws, filler, timing, language=conn.language)
+                            try:
+                                await self._send_tts_sentence(ws, filler, timing, language=conn.language)
+                            except Exception as exc:
+                                print(f"Filler TTS unavailable; continuing without audio: {exc}", flush=True)
                             await ws.send_json({"type": "agent_status", "state": "tool_use",
                                                 "tool": tool_name, "preview": info.get("preview", "")})
                     continue
@@ -1353,11 +1358,22 @@ class VoicePipelineServer:
                         await ws.send_json({"type": "agent_status", "state": "speaking"})
                         spoken = True
                     conn.spoken_sentences.append(clean)
-                    await self._send_tts_sentence(ws, clean, timing, language=conn.language)
+                    try:
+                        await self._send_tts_sentence(ws, clean, timing, language=conn.language)
+                    except Exception as exc:
+                        # A voice-provider failure must never discard the model's written answer.
+                        print(f"TTS unavailable; keeping text response: {exc}", flush=True)
+                        timing.errors.append(f"TTS unavailable: {type(exc).__name__}: {exc}")
+                        spoken = False
+                        break
             tail = self._clean_for_tts(pending.strip())
             if tail and not self._is_duplicate_sentence(tail, conn.spoken_sentences):
                 conn.spoken_sentences.append(tail)
-                await self._send_tts_sentence(ws, tail, timing, language=conn.language)
+                try:
+                    await self._send_tts_sentence(ws, tail, timing, language=conn.language)
+                except Exception as exc:
+                    print(f"TTS unavailable; keeping text response: {exc}", flush=True)
+                    timing.errors.append(f"TTS unavailable: {type(exc).__name__}: {exc}")
         finally:
             if not forward_task.done():
                 forward_task.cancel()

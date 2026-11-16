@@ -17,7 +17,7 @@
           <header class="ae-topbar">
             <div class="ae-brand">
               <span class="ae-logo-dot"></span>
-              <span class="ae-brand-title">AETHERIA</span><span class="ae-brand-sub"> // MAGNUS</span>
+              <span class="ae-brand-title">MAMMY\'S LITTLE HELPER</span>
             </div>
             <div class="ae-status-pill">
               <span class="ae-pulse-dot"></span>
@@ -76,7 +76,7 @@
                   </div>
                 </div>
                 <div class="ae-chat-input-bar">
-                  <input class="ae-chat-input-modal" id="ae-chat-input-modal" data-i18n-ph="input_placeholder" placeholder="Ask or speak to Magnus... (Space to talk)" autocomplete="off">
+                  <input class="ae-chat-input-modal" id="ae-chat-input-modal" data-i18n-ph="input_placeholder" placeholder="Ask or speak to Little Helper... (Space to talk)" autocomplete="off">
                   <button class="ae-chat-send-modal" id="ae-chat-send-modal" data-i18n="send">SEND</button>
                 </div>
               </div>
@@ -109,7 +109,7 @@
 
             <!-- Sleek Integrated Chat Query Row -->
             <div class="ae-chat-row" id="ae-chat-row">
-              <input class="ae-chat-input" id="ae-chat-input" data-i18n-ph="input_placeholder" placeholder="Ask or speak to Magnus... (Space to talk)" autocomplete="off">
+              <input class="ae-chat-input" id="ae-chat-input" data-i18n-ph="input_placeholder" placeholder="Ask or speak to Little Helper... (Space to talk)" autocomplete="off">
               <button class="ae-chat-send" id="ae-chat-send" data-i18n="send">SEND</button>
             </div>
           </footer>
@@ -390,9 +390,9 @@
       core.on("i18n_change", () => {
         const t = (k, fb) => (window.I18n ? window.I18n.t(k) : fb);
         voxBtn.querySelector("span").textContent = core.handsFree ? t("hands_free_on", "⚡ HANDS-FREE: ON") : t("hands_free_off", "⚡ HANDS-FREE: OFF");
-        chatInp.placeholder = t("input_placeholder", "Ask or speak to Magnus... (Space to talk)");
+        chatInp.placeholder = t("input_placeholder", "Ask or speak to Little Helper... (Space to talk)");
         chatSend.textContent = t("send", "SEND");
-        if (modalInp) modalInp.placeholder = t("input_placeholder", "Ask or speak to Magnus... (Space to talk)");
+        if (modalInp) modalInp.placeholder = t("input_placeholder", "Ask or speak to Little Helper... (Space to talk)");
         if (modalSend) modalSend.textContent = t("send", "SEND");
         const inspLabel = drawerBtn.querySelector(".ae-btn-label");
         if (inspLabel) inspLabel.textContent = t("inspector", "INSPECTOR");

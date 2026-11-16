@@ -733,8 +733,43 @@ registerProcessor("pcm16k",PCM16K);`;
     try {
       // "code:" explicitly switches to read-only repository investigation mode.
       // Normal chat remains unchanged; this mode never writes to project files.
+      const fixRequest = trimmed.match(/^fix\s*:\s*([\s\S]+)$/i);
+      const approveFix = trimmed.match(/^approve\s+fix\s+([a-f0-9]{12})$/i);
+      const rejectFix = trimmed.match(/^(?:reject|discard)\s+fix\s+([a-f0-9]{12})$/i);
       const codeRequest = trimmed.match(/^(?:code|investigate code)\s*:\s*([\s\S]+)$/i);
-      if (codeRequest) {
+      if (fixRequest) {
+        const r = await fetch("/api/code-fixer/propose", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: fixRequest[1].trim() })
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || r.status);
+        const answer = [
+          "PATCH READY FOR REVIEW — NO FILES HAVE BEEN CHANGED.",
+          "File: " + j.path,
+          "Branch: " + j.branch,
+          "Proposal ID: " + j.proposal_id,
+          "Expires in: " + j.expires_in_seconds + " seconds",
+          "",
+          j.diff || "(No diff returned.)",
+          "",
+          "Review the entire diff. To apply this exact patch, type: approve fix " + j.proposal_id,
+          "To discard it, type: reject fix " + j.proposal_id,
+          "Approval applies the patch to the local working tree only; it does not commit or deploy."
+        ].join("\\n");
+        this.emit("transcript", { text: answer, isUser: false });
+      } else if (approveFix || rejectFix) {
+        const proposalId = (approveFix || rejectFix)[1];
+        const r = await fetch("/api/code-fixer/approve", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ proposal_id: proposalId, approve: !!approveFix })
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || r.status);
+        this.emit("transcript", { text: j.message || ("Code-fixer status: " + j.status), isUser: false });
+      } else if (codeRequest) {
         const r = await fetch("/api/code-assistant", {
           method: "POST",
           headers: { "Content-Type": "application/json" },

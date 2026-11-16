@@ -13,7 +13,7 @@
     CONV,
     state: "standby",        // standby | listening | thinking | tool | speaking | error
     level: 0,
-    handsFree: true,
+    handsFree: false,
     capturing: false,
     wsReady: false,
     turns: 0,

@@ -2045,8 +2045,8 @@ async def code_fixer_propose(request: Request) -> JSONResponse:
             item["code"] for item in target_excerpts if item["path"] == target
         ).strip()
         if not target_context:
-            target_context = original[:12_000]
-        target_context = target_context[:12_000]
+            target_context = original[:2_500]
+        target_context = target_context[:2_500]
     except (OSError, UnicodeError, ValueError) as exc:
         return JSONResponse({"error": f"Cannot safely read target: {exc}"}, status_code=400)
 

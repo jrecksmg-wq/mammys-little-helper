@@ -144,7 +144,14 @@
   async function playEncodedChunk(buf) {
     const ctx = ensureCtx();
     try {
+      // Chrome can suspend Web Audio after a permission prompt or tab switch.
+      // Resume before decoding/scheduling so valid TTS audio is not silently dropped.
+      if (ctx.state === "suspended") await ctx.resume();
       const decoded = await ctx.decodeAudioData(buf.slice(0));
+      if (!decoded || decoded.length === 0) {
+        throw new Error("Decoded voice audio was empty");
+      }
+      if (ctx.state === "suspended") await ctx.resume();
       const src = ctx.createBufferSource();
       src.buffer = decoded;
       src.connect(ctx.destination);
@@ -157,8 +164,9 @@
         if (!JarvisCore.serverTurnActive && activeSources.length === 0) onPlaybackEnded();
       };
       audioArrived = true;
+      JarvisCore.emit("log", { type: "sys", text: `Voice audio playing (${decoded.duration.toFixed(1)}s; AudioContext ${ctx.state}).` });
     } catch (err) {
-      JarvisCore.emit("log", { type: "sys", text: "audio decode failed: " + (err?.message || err) });
+      JarvisCore.emit("log", { type: "sys", text: "Voice playback failed: " + (err?.message || err) });
     }
   }
 

@@ -757,7 +757,7 @@ registerProcessor("pcm16k",PCM16K);`;
           "Review the entire diff. To apply this exact patch, type: approve fix " + j.proposal_id,
           "To discard it, type: reject fix " + j.proposal_id,
           "Approval applies the patch to the local working tree only; it does not commit or deploy."
-        ].join("\\n");
+        ].join("\n");
         this.emit("transcript", { text: answer, isUser: false });
       } else if (approveFix || rejectFix) {
         const proposalId = (approveFix || rejectFix)[1];

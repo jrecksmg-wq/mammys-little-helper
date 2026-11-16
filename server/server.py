@@ -1996,7 +1996,7 @@ def _validate_code_fix_patch(patch: str, expected_path: str) -> tuple[bool, str]
     target = ROOT.parent / candidate
     if target.is_symlink() or not target.is_file():
         return False, "The target must be an existing regular file."
-    if re.search(r"(?m)^(?:---|\\+\\+\\+) /dev/null$", patch):
+    if re.search(r"(?m)^(?:---|\+\+\+) /dev/null$", patch):
         return False, "File creation and deletion are disabled."
     return True, ""
 
@@ -2092,7 +2092,7 @@ async def code_fixer_propose(request: Request) -> JSONResponse:
         patch = await asyncio.to_thread(generate_patch)
         fence = chr(96) * 3
         if patch.startswith(fence):
-            patch = patch.split("\\n", 1)[-1].rsplit(fence, 1)[0].strip()
+            patch = patch.split("\n", 1)[-1].rsplit(fence, 1)[0].strip()
         if patch == "NO_SAFE_PATCH":
             return JSONResponse({"error": "No safe evidence-based patch could be prepared. No files were changed."}, status_code=422)
         valid, reason = _validate_code_fix_patch(patch, target)

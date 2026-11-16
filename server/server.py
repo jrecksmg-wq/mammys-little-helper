@@ -1980,14 +1980,27 @@ def _code_fix_git(*args: str, input_text: str | None = None) -> subprocess.Compl
 
 
 def _validate_code_fix_patch(patch: str, expected_path: str) -> tuple[bool, str]:
-    """Allow one modification to one existing source file under server/."""
+    """Allow one modification to one existing text file under server/."""
     if not patch or len(patch) > 100_000:
         return False, "The proposed patch is empty or too large."
     if any(x in patch for x in ("GIT binary patch", "new file mode", "deleted file mode")):
         return False, "Only edits to an existing text file are allowed."
+
+    # Models sometimes return a valid unified diff without Git's optional
+    # diff --git preamble. Accept that format only when both file headers
+    # identify the exact selected path, then add the preamble Git apply expects.
     headers = re.findall(r"(?m)^diff --git a/(.+?) b/(.+?)$", patch)
-    if len(headers) != 1 or headers[0] != (expected_path, expected_path):
-        return False, "The patch must modify exactly the selected file."
+    if headers:
+        if len(headers) != 1 or headers[0] != (expected_path, expected_path):
+            return False, "The patch must modify exactly the selected file."
+    else:
+        old_headers = re.findall(r"(?m)^--- a/(.+?)$", patch)
+        new_headers = re.findall(r"(?m)^\+\+\+ b/(.+?)$", patch)
+        if (len(old_headers) != 1 or len(new_headers) != 1
+                or old_headers[0] != expected_path or new_headers[0] != expected_path):
+            return False, "The patch must modify exactly the selected file."
+        patch = f"diff --git a/{expected_path} b/{expected_path}\n" + patch
+
     candidate = Path(expected_path)
     if candidate.is_absolute() or ".." in candidate.parts or not expected_path.startswith("server/"):
         return False, "The target is outside the permitted server source directory."
@@ -1999,7 +2012,6 @@ def _validate_code_fix_patch(patch: str, expected_path: str) -> tuple[bool, str]
     if re.search(r"(?m)^(?:---|\+\+\+) /dev/null$", patch):
         return False, "File creation and deletion are disabled."
     return True, ""
-
 
 def _expire_code_fix_proposals() -> None:
     now = time.time()

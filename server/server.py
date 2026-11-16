@@ -1988,10 +1988,10 @@ def _validate_code_fix_patch(patch: str, expected_path: str) -> tuple[bool, str]
 
     # Accept Git diffs and standard unified diffs. Header timestamps are
     # permitted after a tab, but the actual old/new paths must match exactly.
-    patch = patch.replace("\\r\\n", "\\n").replace("\\r", "\\n")
-    diff_headers = re.findall(r"(?m)^diff --git a/([^\\t\\n]+?) b/([^\\t\\n]+?)\\s*$", patch)
-    old_headers = re.findall(r"(?m)^--- a/([^\\t\\n]+?)(?:\\t.*)?$", patch)
-    new_headers = re.findall(r"(?m)^\\+\\+\\+ b/([^\\t\\n]+?)(?:\\t.*)?$", patch)
+    patch = patch.replace("\r\n", "\n").replace("\r", "\n")
+    diff_headers = re.findall(r"(?m)^diff --git a/([^\t\n]+?) b/([^\t\n]+?)\s*$", patch)
+    old_headers = re.findall(r"(?m)^--- a/([^\t\n]+?)(?:\t.*)?$", patch)
+    new_headers = re.findall(r"(?m)^\+\+\+ b/([^\t\n]+?)(?:\t.*)?$", patch)
     if diff_headers:
         if (len(diff_headers) != 1
                 or diff_headers[0] != (expected_path, expected_path)):

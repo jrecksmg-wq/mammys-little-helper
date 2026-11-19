@@ -1378,11 +1378,17 @@ async def magnus_process(request: Request) -> JSONResponse:
 def _magnus_model_url() -> str | None:
     env_url = os.environ.get("MAGNUS_MODEL_URL")
     if env_url:
-        return env_url.rstrip("/")
-    llm = CFG.get("llm") or {}
-    if str(llm.get("provider", "")).lower() in {"ollama", "openai_compatible", "self_hosted", "auto"}:
-        return str(llm.get("base_url") or "http://127.0.0.1:11434/api/chat").rstrip("/")
-    return None
+        url = env_url.rstrip("/")
+    else:
+        llm = CFG.get("llm") or {}
+        if str(llm.get("provider", "")).lower() not in {"ollama", "openai_compatible", "self_hosted", "auto"}:
+            return None
+        url = str(llm.get("base_url") or "http://127.0.0.1:11434/api/chat").rstrip("/")
+    if url.endswith("/v1"):
+        return url + "/chat/completions"
+    if url.endswith("/v1/"):
+        return url + "chat/completions"
+    return url
 
 
 def _magnus_model_name() -> str:

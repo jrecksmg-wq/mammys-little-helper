@@ -1962,11 +1962,15 @@ async def websocket_endpoint(ws: WebSocket) -> None:
 def main() -> int:
     server = CFG["server"]
     host = server.get("host", "0.0.0.0")
-    port = int(server.get("port", 8765))
+    port = int(os.environ.get("PORT") or server.get("port", 8765))
     tls_ports = server.get("tls_ports") or ([server["tls_port"]] if server.get("tls_port") else [])
     cert = server.get("tls_cert")
     key = server.get("tls_key")
-    print(f"Starting Hermes voice server on ws://{host}:{port}/ws", flush=True)
+    print(f"Starting MAGNUS voice server on ws://{host}:{port}/ws", flush=True)
+    if os.environ.get("MAGNUS_MODEL_URL"):
+        print("MAGNUS self-hosted model endpoint configured.", flush=True)
+    else:
+        print("MAGNUS self-hosted model endpoint not configured; Hermes remains the fallback brain.", flush=True)
     if tls_ports and cert and key and (ROOT / cert).exists() and (ROOT / key).exists():
         servers = [uvicorn.Server(uvicorn.Config(app, host=host, port=port, log_level="info"))]
         for tp in tls_ports:

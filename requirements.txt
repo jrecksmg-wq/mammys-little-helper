@@ -8,3 +8,4 @@ psutil>=5.9.8
 edge-tts>=6.1.12
 silero-vad>=5.1.2
 anthropic>=0.18.0
+RealtimeSTT>=0.3.0

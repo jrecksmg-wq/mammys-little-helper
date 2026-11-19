@@ -111,6 +111,19 @@
   }
 
   async function ask(text) {
+    // Server-side MAGNUS rules/memory are authoritative. Browser localStorage
+    // remains a fallback so the HUD still has useful behavior when offline.
+    try {
+      const control = await fetch("/api/magnus/process", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        credentials: "same-origin",
+        body: JSON.stringify({input: text})
+      });
+      const controlData = await control.json();
+      if (control.ok && controlData.handled && controlData.text) return controlData.text;
+    } catch (_) {}
+
     const local = localProcess(text);
     if (local) return local;
 
@@ -257,12 +270,25 @@
       recognition.start();
     };
 
-    document.getElementById("magnus-apply").onclick = () => {
+    document.getElementById("magnus-apply").onclick = async () => {
       try {
         const parsed = JSON.parse(document.getElementById("magnus-config").value);
         brain = merge(defaults, parsed);
         save();
-        addMessage("MAGNUS configuration applied and saved.", "magnus");
+        try {
+          const r = await fetch("/api/magnus/config", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            credentials: "same-origin",
+            body: JSON.stringify(parsed)
+          });
+          if (!r.ok) throw new Error((await r.text()).slice(0, 200));
+          brain = merge(defaults, await r.json());
+          save();
+          addMessage("MAGNUS server configuration applied and saved.", "magnus");
+        } catch (_) {
+          addMessage("Saved locally. Server memory was unavailable, so the browser copy remains active.", "magnus");
+        }
       } catch (e) {
         addMessage("Configuration was not applied: invalid JSON.", "magnus");
       }

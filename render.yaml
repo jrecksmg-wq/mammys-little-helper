@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: mammys-little-helper-magnus
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python server/server.py
+    healthCheckPath: /health
+    envVars:
+      - key: JARVIS_HUD_TOKEN
+        sync: false
+      - key: MAGNUS_MODEL_URL
+        sync: false
+      - key: MAGNUS_MODEL
+        value: qwen2.5:3b

@@ -1225,7 +1225,9 @@ def get_pipeline() -> VoicePipelineServer:
     return PIPELINE
 
 
-app = FastAPI(title="Hermes Voice Pipeline")
+app = FastAPI(title="Magnus Assistant")
+from magnus_improvement import router as magnus_improvement_router
+app.include_router(magnus_improvement_router)
 
 
 @app.on_event("startup")

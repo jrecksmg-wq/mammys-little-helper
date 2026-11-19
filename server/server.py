@@ -40,6 +40,7 @@ from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from RealtimeSTT import AudioToTextRecorder
+from magnus_engine import MagnusEngine
 
 try:
     import psutil
@@ -1207,6 +1208,7 @@ class VoicePipelineServer:
 load_env()
 CFG = load_config()
 HERMES = HermesAPI(CFG)   # lightweight API client - independent of the STT pipeline
+MAGNUS = MagnusEngine(ROOT / "logs" / "magnus_state.json")
 PIPELINE: VoicePipelineServer | None = None
 
 
@@ -1345,6 +1347,98 @@ async def hermes_proxy(path: str, request: Request) -> Response:
                     media_type=resp.headers.get("Content-Type", "application/json"))
 
 
+@app.get("/api/magnus/state")
+async def magnus_state() -> JSONResponse:
+    return JSONResponse(MAGNUS.state())
+
+
+@app.post("/api/magnus/config")
+async def magnus_config(request: Request) -> JSONResponse:
+    try:
+        patch = await request.json()
+        if not isinstance(patch, dict):
+            return JSONResponse({"error": "configuration must be an object"}, status_code=400)
+        return JSONResponse(MAGNUS.apply_config(patch))
+    except ValueError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+    except Exception as exc:
+        return JSONResponse({"error": str(exc)}, status_code=500)
+
+
+@app.post("/api/magnus/process")
+async def magnus_process(request: Request) -> JSONResponse:
+    body = await request.json()
+    text = (body.get("input") or "").strip()
+    if not text:
+        return JSONResponse({"handled": False})
+    result = MAGNUS.process(text)
+    return JSONResponse({"handled": result is not None, "text": result or ""})
+
+
+def _magnus_model_url() -> str | None:
+    env_url = os.environ.get("MAGNUS_MODEL_URL")
+    if env_url:
+        return env_url.rstrip("/")
+    llm = CFG.get("llm") or {}
+    if str(llm.get("provider", "")).lower() in {"ollama", "openai_compatible", "self_hosted", "auto"}:
+        return str(llm.get("base_url") or "http://127.0.0.1:11434/api/chat").rstrip("/")
+    return None
+
+
+def _magnus_model_name() -> str:
+    return os.environ.get("MAGNUS_MODEL") or str((CFG.get("llm") or {}).get("model") or "qwen2.5:3b")
+
+
+def _magnus_system_prompt() -> str:
+    state = MAGNUS.state()
+    rules = "\n".join(f"- {r}" for r in state.get("rules", [])[-50:])
+    memories = "\n".join(f"- {m}" for m in state.get("memory", [])[-20:])
+    return (
+        "You are MAGNUS, a personal assistant running inside Mommy's Little Helper. "
+        "You are controlled by the user, not by a third-party assistant identity. "
+        "Follow the saved MAGNUS rules and use saved memories when relevant. "
+        "Do not claim to have tools, access, or abilities that are not actually available. "
+        "Never reveal secrets or environment variables.\n\n"
+        "MAGNUS RULES:\n" + (rules or "- Be helpful and direct.") +
+        "\n\nMAGNUS MEMORY:\n" + (memories or "- No saved memories yet.")
+    )
+
+
+async def _chat_with_self_hosted_model(user_text: str) -> str | None:
+    url = _magnus_model_url()
+    if not url:
+        return None
+    payload = {
+        "model": _magnus_model_name(),
+        "messages": [
+            {"role": "system", "content": _magnus_system_prompt()},
+            {"role": "user", "content": user_text},
+        ],
+        "stream": False,
+    }
+    try:
+        response = await asyncio.to_thread(
+            robust_post,
+            url,
+            json=payload,
+            timeout=90,
+            headers={"Content-Type": "application/json"},
+        )
+        if response.status_code >= 400:
+            raise RuntimeError(f"self-hosted model HTTP {response.status_code}: {response.text[:300]}")
+        data = response.json()
+        text = (
+            ((data.get("message") or {}).get("content"))
+            or (((data.get("choices") or [{}])[0].get("message") or {}).get("content"))
+            or data.get("response")
+            or ""
+        )
+        return str(text).strip() or None
+    except Exception as exc:
+        print(f"MAGNUS self-hosted model unavailable: {exc}", flush=True)
+        return None
+
+
 @app.post("/api/chat")
 async def hud_chat(request: Request) -> JSONResponse:
     """Typed chat from the HUD — same Hermes session as voice."""
@@ -1384,6 +1478,16 @@ async def hud_chat(request: Request) -> JSONResponse:
         out["text"] = "".join(parts).strip()
 
     try:
+        local = MAGNUS.process(text)
+        if local:
+            out["text"] = local
+            return JSONResponse(out)
+
+        self_hosted = await _chat_with_self_hosted_model(text)
+        if self_hosted:
+            out["text"] = self_hosted
+            return JSONResponse(out)
+
         await asyncio.to_thread(run_sync)
         return JSONResponse(out)
     except Exception as exc:
